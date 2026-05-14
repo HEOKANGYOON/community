@@ -26,6 +26,7 @@ CREATE TABLE board (
     name        VARCHAR(50)     NOT NULL,
     description VARCHAR(200),
     created_at  DATETIME        NOT NULL,
+    updated_at  DATETIME,
 
     PRIMARY KEY (id)
 );
