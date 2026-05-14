@@ -1,0 +1,46 @@
+package com.kangyoon.community.global.exception;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+
+@Getter
+@RequiredArgsConstructor
+public enum ErrorCode {
+
+    /*공통*/
+    INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "C001", "잘못된 입력값입니다."),
+    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "C002", "허용되지 않은 HTTP 메서드입니다."),
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C003", "서버 오류가 발생했습니다."),
+    INVALID_TYPE_VALUE(HttpStatus.BAD_REQUEST, "C004", "잘못된 타입입니다."),
+
+    /*Member*/
+    MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "M001", "존재하지 않는 회원입니다."),
+    DUPLICATE_EMAIL(HttpStatus.CONFLICT, "M002", "이미 사용 중인 이메일입니다."),
+    DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "M003", "이미 사용 중인 닉네임입니다."),
+    INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "M004", "이메일, 비밀번호를 확인해주세요."),
+
+    /*Auth*/
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A001", "유효하지 않은 토큰입니다."),
+    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "A002", "만료된 토큰입니다."),
+    NOT_AUTHENTICATED(HttpStatus.UNAUTHORIZED, "A003", "로그인이 필요합니다."),
+    ACCESS_DENIED(HttpStatus.FORBIDDEN,"A004", "접근 권한이 없습니다."),
+    REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED,"A005", "RefreshToken이 존재하지 않습니다."),
+    REFRESH_TOKEN_MISMATCH(HttpStatus.UNAUTHORIZED, "A006", "RefreshToken이 일치하지 않습니다."),
+
+    /*Board*/
+    BOARD_NOT_FOUND(HttpStatus.NOT_FOUND, "B001", "존재하지 않는 게시판입니다."),
+
+    /*Post*/
+    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "존재하지 않는 게시글입니다."),
+    POST_AUTHOR_MISMATCH(HttpStatus.FORBIDDEN, "P002", "게시글 작성자가 아닙니다."),
+
+    /*Comment*/
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "CM001", "존재하지 않는 댓글입니다."),
+    COMMENT_AUTHOR_MISMATCH(HttpStatus.FORBIDDEN, "CM002", "댓글 작성자가 아닙니다.");
+
+
+    private final HttpStatus status;
+    private final String code;
+    private final String message;
+}
