@@ -10,7 +10,8 @@ CREATE TABLE member (
     updated_at  DATETIME,
 
     PRIMARY KEY (id),
-    UNIQUE KEY uk_member_email (email)
+    UNIQUE KEY uk_member_email (email),
+    UNIQUE KEY uk_member_nickname(nickname)
 );
 
 CREATE TABLE board_category (
