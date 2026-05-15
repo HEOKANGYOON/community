@@ -8,9 +8,12 @@ import com.kangyoon.community.global.exception.ErrorCode;
 import com.kangyoon.community.global.security.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +23,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final RedisTemplate<String, String> redisTemplate;
 
 
     public void signup(String email, String password, String nickname) {
@@ -54,10 +58,17 @@ public class MemberService {
             throw new CustomException(ErrorCode.INVALID_LOGIN);
         }
 
-        return new LoginResponse(
-                jwtProvider.generateToken(member.getEmail(), member.getId(), member.getRole()),
-                jwtProvider.generateRefreshToken(member.getEmail())
+        String accessToken = jwtProvider.generateToken(member.getEmail(), member.getId(), member.getRole());
+        String refreshToken = jwtProvider.generateRefreshToken(member.getEmail());
+
+        redisTemplate.opsForValue().set(
+                "refresh:" + member.getId(),
+                refreshToken,
+                jwtProvider.getRefreshExpiration(),
+                TimeUnit.MILLISECONDS
         );
+
+        return new LoginResponse(accessToken, refreshToken);
     }
 
 
