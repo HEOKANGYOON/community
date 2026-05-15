@@ -18,7 +18,8 @@ public enum ErrorCode {
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "M001", "존재하지 않는 회원입니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "M002", "이미 사용 중인 이메일입니다."),
     DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "M003", "이미 사용 중인 닉네임입니다."),
-    INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "M004", "이메일, 비밀번호를 확인해주세요."),
+    DUPLICATE_MEMBER(HttpStatus.CONFLICT, "M004", "이미 사용중인 이메일 또는 닉네입입니다."),
+    INVALID_LOGIN(HttpStatus.UNAUTHORIZED, "M005", "이메일, 비밀번호를 확인해주세요."),
 
     /*Auth*/
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A001", "유효하지 않은 토큰입니다."),

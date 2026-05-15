@@ -28,7 +28,7 @@ public class MemberService {
         }
 
         if (memberRepository.existsByNickname(nickname)) {
-            throw new CustomException(ErrorCode.DUPLICATE_EMAIL);
+            throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
         }
 
         String encodedPassword = passwordEncoder.encode(password);
@@ -39,19 +39,19 @@ public class MemberService {
         try {
             memberRepository.flush();
         } catch (DataIntegrityViolationException e) {
-            throw new CustomException(ErrorCode.DUPLICATE_EMAIL);
+            throw new CustomException(ErrorCode.DUPLICATE_MEMBER);
         }
     }
 
+    @Transactional(readOnly = true)
     public LoginResponse login(String email, String password) {
         Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_PASSWORD));
-        //일단 INVALID_PASSWORD 나중에 INVALID_PASSWORD를 INVALID_LOGIN으로 바꾸든가 해야지
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_LOGIN));
 
 
         //입력받은 패스워드(평문) DB값(해시값) 검증 matches()
         if (!passwordEncoder.matches(password, member.getPassword())) {
-            throw new CustomException(ErrorCode.INVALID_PASSWORD);
+            throw new CustomException(ErrorCode.INVALID_LOGIN);
         }
 
         return new LoginResponse(
