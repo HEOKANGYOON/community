@@ -1,6 +1,7 @@
 package com.kangyoon.community.domain.member.service;
 
 import com.kangyoon.community.domain.member.dto.LoginResponse;
+import com.kangyoon.community.domain.member.dto.LoginResult;
 import com.kangyoon.community.domain.member.entity.Member;
 import com.kangyoon.community.domain.member.repository.MemberRepository;
 import com.kangyoon.community.global.exception.CustomException;
@@ -48,7 +49,7 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public LoginResponse login(String email, String password) {
+    public LoginResult login(String email, String password) {
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_LOGIN));
 
@@ -68,7 +69,7 @@ public class MemberService {
                 TimeUnit.MILLISECONDS
         );
 
-        return new LoginResponse(accessToken, refreshToken);
+        return new LoginResult(accessToken, refreshToken);
     }
 
 
