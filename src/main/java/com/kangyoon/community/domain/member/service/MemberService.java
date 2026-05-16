@@ -1,6 +1,6 @@
 package com.kangyoon.community.domain.member.service;
 
-import com.kangyoon.community.domain.member.dto.LoginResponse;
+import com.kangyoon.community.domain.member.dto.LoginResult;
 import com.kangyoon.community.domain.member.entity.Member;
 import com.kangyoon.community.domain.member.repository.MemberRepository;
 import com.kangyoon.community.global.exception.CustomException;
@@ -48,7 +48,7 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public LoginResponse login(String email, String password) {
+    public LoginResult login(String email, String password) {
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_LOGIN));
 
@@ -68,9 +68,32 @@ public class MemberService {
                 TimeUnit.MILLISECONDS
         );
 
-        return new LoginResponse(accessToken, refreshToken);
+        return new LoginResult(accessToken, refreshToken);
     }
 
+    public LoginResult refresh(String refreshToken) {
+        String email = jwtProvider.parseToken(refreshToken).getSubject();
 
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
+        String stored = redisTemplate.opsForValue().get("refresh:" + member.getId());
+        if (stored == null) {
+            throw new CustomException(ErrorCode.REFRESH_TOKEN_NOT_FOUND);
+        }
+        if (!stored.equals(refreshToken)) {
+            throw new CustomException(ErrorCode.REFRESH_TOKEN_MISMATCH);
+        }
+        String newAccessToken = jwtProvider.generateToken(member.getEmail(), member.getId(), member.getRole());
+        String newRefreshToken = jwtProvider.generateRefreshToken(member.getEmail());
+
+        redisTemplate.opsForValue().set(
+                "refresh:" + member.getId(),
+                newRefreshToken,
+                jwtProvider.getRefreshExpiration(),
+                TimeUnit.MILLISECONDS
+        );
+
+        return new LoginResult(newAccessToken, newRefreshToken);
+    }
 }
