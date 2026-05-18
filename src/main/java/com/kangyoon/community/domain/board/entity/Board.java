@@ -20,7 +20,7 @@ public class Board extends BaseEntity {
     }
 
     public static Board create(String name, String description, BoardCategory boardCategory) {
-        new Board(name, description, boardCategory);
+        return new Board(name, description, boardCategory);
     }
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;

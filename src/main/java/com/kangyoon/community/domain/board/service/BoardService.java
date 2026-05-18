@@ -52,11 +52,11 @@ public class BoardService {
         Board board = boardRepository.findByIdAndDeletedAtIsNull(boardId)
                 .orElseThrow(() -> new CustomException(ErrorCode.BOARD_NOT_FOUND));
 
-        if (!name.isBlank()) {
+        if (name != null && !name.isBlank()) {
             board.updateName(name);
         }
 
-        if (!description.isBlank()) {
+        if (description != null && !description.isBlank()) {
             board.updateDescription(description);
         }
 
