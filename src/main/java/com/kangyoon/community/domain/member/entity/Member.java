@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)  //기본 생성자 대신 생성
@@ -52,5 +54,6 @@ public class Member extends BaseEntity {
     private String providerId;
     @Column(nullable = false) private String nickname;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private Role role;
+    private LocalDateTime deletedAt;
 
 }

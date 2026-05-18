@@ -8,6 +8,7 @@ CREATE TABLE member (
     role        VARCHAR(20)     NOT NULL,
     created_at  DATETIME        NOT NULL,
     updated_at  DATETIME,
+    deleted_at  DATETIME,
 
     PRIMARY KEY (id),
     UNIQUE KEY uk_member_email (email),
@@ -25,11 +26,13 @@ CREATE TABLE board (
     id          BIGINT          NOT NULL    AUTO_INCREMENT,
     category_id BIGINT          NOT NULL,
     name        VARCHAR(50)     NOT NULL,
-    description VARCHAR(200),
+    description VARCHAR(200)    NOT NULL,
     created_at  DATETIME        NOT NULL,
     updated_at  DATETIME,
+    deleted_at  DATETIME,
 
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    UNIQUE  KEY uk_board_name (name)
 );
 
 CREATE TABLE board_manager (
