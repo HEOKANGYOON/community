@@ -42,4 +42,7 @@ public class Board extends BaseEntity {
         this.boardCategory = boardCategory;
     }
 
+    public void deleteBoard() {
+        this.deletedAt = LocalDateTime.now();
+    }
 }
