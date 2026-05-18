@@ -1,4 +1,4 @@
-CREATE TABLE member (
+CREATE TABLE IF NOT EXISTS member (
     id          BIGINT          NOT NULL    AUTO_INCREMENT,
     email       VARCHAR(100)    NOT NULL,
     password    VARCHAR(255)    NOT NULL,
@@ -8,31 +8,34 @@ CREATE TABLE member (
     role        VARCHAR(20)     NOT NULL,
     created_at  DATETIME        NOT NULL,
     updated_at  DATETIME,
+    deleted_at  DATETIME,
 
     PRIMARY KEY (id),
     UNIQUE KEY uk_member_email (email),
     UNIQUE KEY uk_member_nickname(nickname)
 );
 
-CREATE TABLE board_category (
+CREATE TABLE IF NOT EXISTS board_category (
     id          BIGINT          NOT NULL    AUTO_INCREMENT,
     name        VARCHAR(20)     NOT NULL,
 
     PRIMARY KEY (id)
 );
 
-CREATE TABLE board (
+CREATE TABLE IF NOT EXISTS board (
     id          BIGINT          NOT NULL    AUTO_INCREMENT,
     category_id BIGINT          NOT NULL,
     name        VARCHAR(50)     NOT NULL,
-    description VARCHAR(200),
+    description VARCHAR(200)    NOT NULL,
     created_at  DATETIME        NOT NULL,
     updated_at  DATETIME,
+    deleted_at  DATETIME,
 
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    UNIQUE  KEY uk_board_name (name)
 );
 
-CREATE TABLE board_manager (
+CREATE TABLE IF NOT EXISTS board_manager (
     id          BIGINT          NOT NULL    AUTO_INCREMENT,
     member_id   BIGINT          NOT NULL,
     board_id    BIGINT          NOT NULL,
@@ -41,7 +44,7 @@ CREATE TABLE board_manager (
     PRIMARY KEY (id)
 );
 
-CREATE TABLE post (
+CREATE TABLE IF NOT EXISTS post (
     id          BIGINT          NOT NULL    AUTO_INCREMENT,
     board_id    BIGINT          NOT NULL,
     member_id   BIGINT          NOT NULL,
@@ -57,7 +60,7 @@ CREATE TABLE post (
     PRIMARY KEY (id)
 );
 
-CREATE TABLE post_image (
+CREATE TABLE IF NOT EXISTS post_image (
     id          BIGINT          NOT NULL    AUTO_INCREMENT,
     post_id     BIGINT          NOT NULL,
     image_url   VARCHAR(500)    NOT NULL,
@@ -66,7 +69,7 @@ CREATE TABLE post_image (
     PRIMARY KEY (id)
 );
 
-CREATE TABLE post_vote (
+CREATE TABLE IF NOT EXISTS post_vote (
     id          BIGINT          NOT NULL    AUTO_INCREMENT,
     member_id   BIGINT          NOT NULL,
     post_id     BIGINT          NOT NULL,
@@ -77,7 +80,7 @@ CREATE TABLE post_vote (
     UNIQUE KEY uk_postvote_memberId_postId (member_id, post_id)
 );
 
-CREATE TABLE comment (
+CREATE TABLE IF NOT EXISTS comment (
     id          BIGINT          NOT NULL    AUTO_INCREMENT,
     post_id     BIGINT          NOT NULL,
     member_id   BIGINT          NOT NULL,
@@ -91,7 +94,7 @@ CREATE TABLE comment (
     PRIMARY KEY (id)
 );
 
-CREATE TABLE comment_like (
+CREATE TABLE IF NOT EXISTS comment_like (
     id          BIGINT          NOT NULL    AUTO_INCREMENT,
     member_id   BIGINT          NOT NULL,
     comment_id  BIGINT          NOT NULL,
@@ -102,7 +105,7 @@ CREATE TABLE comment_like (
 );
 
 
-CREATE TABLE notification (
+CREATE TABLE IF NOT EXISTS notification (
     id          BIGINT          NOT NULL    AUTO_INCREMENT,
     member_id   BIGINT          NOT NULL,
     target_type VARCHAR(20)     NOT NULL,
