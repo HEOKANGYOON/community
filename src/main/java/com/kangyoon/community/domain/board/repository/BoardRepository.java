@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface BoardRepository extends JpaRepository<Board, Long>, BoardRepositoryCustom {
     List<Board> findByDeletedAtIsNull();
     Optional<Board> findByIdAndDeletedAtIsNull(Long id);
+    Boolean existsByName(String name);
 }

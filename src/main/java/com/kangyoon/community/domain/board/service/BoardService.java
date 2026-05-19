@@ -39,10 +39,16 @@ public class BoardService {
 
     //생성 권한은 컨트롤러 어노테이션으로 해결
     public void createBoard(String name, String description, Long categoryId) {
+
         BoardCategory category = boardCategoryRepository.findById(categoryId)
                 .orElseThrow(() -> new CustomException(ErrorCode.BOARD_CATEGORY_NOT_FOUND));
 
+        if (boardRepository.existsByName(name)) {
+            throw new CustomException(ErrorCode.DUPLICATE_BOARD_NAME);
+        }
+
         Board board = Board.create(name, description, category);
+
         boardRepository.save(board);
     }
 
@@ -68,7 +74,7 @@ public class BoardService {
     }
 
     public void deleteBoard(Long boardId) {
-        Board board = boardRepository.findById(boardId)
+        Board board = boardRepository.findByIdAndDeletedAtIsNull(boardId)
                 .orElseThrow(() -> new CustomException(ErrorCode.BOARD_NOT_FOUND));
 
         board.deleteBoard();
