@@ -35,9 +35,12 @@ public enum ErrorCode {
     BOARD_CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "B003", "카테고리를 찾을 수 없습니다."),
     DUPLICATE_BOARD_NAME(HttpStatus.CONFLICT, "B004", "이미 존재하는 게시판 이름입니다."),
 
+
     /*Post*/
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "존재하지 않는 게시글입니다."),
     POST_AUTHOR_MISMATCH(HttpStatus.FORBIDDEN, "P002", "게시글 작성자가 아닙니다."),
+    POST_ALREADY_DELETED(HttpStatus.FORBIDDEN, "P003", "이미 삭제된 게시글입니다."),
+
 
     /*Comment*/
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "CM001", "존재하지 않는 댓글입니다."),
