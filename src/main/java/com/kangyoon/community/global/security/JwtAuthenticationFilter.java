@@ -17,7 +17,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
 
 @Component
 @RequiredArgsConstructor
@@ -55,6 +54,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         } catch (CustomException e) {
             writeUnauthorizedResponse(response, e.getErrorCode());
+            return;
         }
 
         filterChain.doFilter(request, response);
