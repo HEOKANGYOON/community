@@ -21,7 +21,7 @@ public class BoardService {
 
     private final BoardRepository boardRepository;
     private final BoardCategoryRepository boardCategoryRepository;
-    private final BoardManagerRepository boardManagerRepository;
+    private final BoardManagerRepository boardManagerRepository;        //TODO:게시판 관리자는 게시글 및 댓글 관리할 때 추가
 
     public List<BoardResponse> getBoards() {
         return boardRepository.findByDeletedAtIsNull()
