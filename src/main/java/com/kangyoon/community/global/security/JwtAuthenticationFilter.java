@@ -66,8 +66,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         response.setStatus(errorResponse.getStatus());
         response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(
-                objectMapper.writeValueAsString(errorResponse)
+        response.getOutputStream().write(
+                objectMapper.writeValueAsBytes(errorResponse)
         );
     }
 

@@ -1,5 +1,9 @@
 package com.kangyoon.community.global.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kangyoon.community.global.exception.ErrorCode;
+import com.kangyoon.community.global.exception.ErrorResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -34,6 +39,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/boards/**").permitAll()  //게시판 및 게시글 조회는 열어둠
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
+                )
+                //인증이 안된(토큰이 없는) 요청은 401로 응답하도록 설정함
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint((request, response, authException) ->{
+                                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                    response.setContentType("application/json;charset=UTF-8");
+                                    response.getOutputStream().write(
+                                            objectMapper.writeValueAsBytes(ErrorResponse.of(ErrorCode.NOT_AUTHENTICATED))
+                                    );
+                                })
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
