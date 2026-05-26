@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS board_manager (
     board_id    BIGINT          NOT NULL,
     created_at  DATETIME        NOT NULL,
 
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    UNIQUE KEY us_board_manager (member_id, board_id)
 );
 
 CREATE TABLE IF NOT EXISTS post (
@@ -85,7 +86,7 @@ CREATE TABLE IF NOT EXISTS comment (
     post_id     BIGINT          NOT NULL,
     member_id   BIGINT          NOT NULL,
     parent_id   BIGINT,
-    content     VARCHAR(100)    NOT NULL,
+    content     VARCHAR(500)    NOT NULL,
     like_count  INT             NOT NULL    DEFAULT 0,
     created_at  DATETIME        NOT NULL,
     updated_at  DATETIME,
