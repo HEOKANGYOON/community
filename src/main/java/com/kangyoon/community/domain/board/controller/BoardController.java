@@ -41,15 +41,17 @@ public class BoardController {
     }
 
     @PatchMapping("/api/admin/boards/{boardId}")
-    public ResponseEntity<Void> updateBoard(@PathVariable Long boardId, @RequestBody @Valid BoardUpdateRequest request) {
+    public ResponseEntity<ApiResponse<Void>> updateBoard(@PathVariable Long boardId, @RequestBody @Valid BoardUpdateRequest request) {
         boardService.updateBoard(boardId, request.name(), request.description(), request.categoryId());
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok()
+                .body(new ApiResponse<>("게시판 수정 성공", null));
     }
 
     @DeleteMapping("/api/admin/boards/{boardId}")
-    public ResponseEntity<Void> deleteBoard(@PathVariable Long boardId) {
+    public ResponseEntity<ApiResponse<Void>> deleteBoard(@PathVariable Long boardId) {
         boardService.deleteBoard(boardId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok()
+                .body(new ApiResponse<>("게시판 삭제 성공", null));
     }
 
 }

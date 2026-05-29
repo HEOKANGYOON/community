@@ -78,7 +78,7 @@ public class PostServiceTest {
     @Test
     void 없는회원으로_게시글_작성_실패() {
         //given
-        given(memberRepository.findById(any())).willThrow(new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        given(memberRepository.findById(any())).willReturn(Optional.empty());
 
         //when & then
         assertThatThrownBy(() -> postService.writePost(1L, 1L,"테스트 게시글", "테스트 게시글입니다."))
@@ -91,7 +91,7 @@ public class PostServiceTest {
     void 없는게시판으로_게시글_작성_실패() {
         //given
         given(memberRepository.findById(any())).willReturn(Optional.of(member));
-        given(boardRepository.findByIdAndDeletedAtIsNull(any())).willThrow(new CustomException(ErrorCode.BOARD_NOT_FOUND));
+        given(boardRepository.findByIdAndDeletedAtIsNull(any())).willReturn(Optional.empty());
 
         //when & then
         assertThatThrownBy(() -> postService.writePost(member.getId(), 1L,"테스트 게시글", "테스트 게시글입니다."))
@@ -118,7 +118,7 @@ public class PostServiceTest {
     @Test
     void 없는게시판_단건_조회_실패() {
         //given
-        given(postRepository.findByIdAndDeletedAtIsNull(any())).willThrow(new CustomException(ErrorCode.POST_NOT_FOUND));
+        given(postRepository.findByIdAndDeletedAtIsNull(any())).willReturn(Optional.empty());
 
         //when & then
         assertThatThrownBy(() -> postService.getPost(1L))
@@ -145,7 +145,7 @@ public class PostServiceTest {
     @Test
     void 없는게시글_수정_실패() {
         //given
-        given(postRepository.findByIdAndDeletedAtIsNull(any())).willThrow(new CustomException(ErrorCode.POST_NOT_FOUND));
+        given(postRepository.findByIdAndDeletedAtIsNull(any())).willReturn(Optional.empty());
 
         //when & then
         assertThatThrownBy(() -> postService.editPost(1L, 1L, "수정된 게시글", "수정된 게시글입니다."))
@@ -179,7 +179,7 @@ public class PostServiceTest {
     @Test
     void 없는게시글_삭제_실패() {
         //given
-        given(postRepository.findByIdAndDeletedAtIsNull(any())).willThrow(new CustomException(ErrorCode.POST_NOT_FOUND));
+        given(postRepository.findByIdAndDeletedAtIsNull(any())).willReturn(Optional.empty());
 
         //when & then
         assertThatThrownBy(() -> postService.deletePost(1L, 1L, "USER"))
