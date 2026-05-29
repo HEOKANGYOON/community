@@ -119,7 +119,7 @@
 
 ## ERD
 
-<img src="docs/images/erd.png" width="800"/>
+<img src="docs/images/ERD_table.png.png" width="800"/>
 
 > 상세 ERD는 이미지를 확대하여 확인 가능합니다.
 
