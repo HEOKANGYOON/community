@@ -44,7 +44,9 @@ public enum ErrorCode {
 
     /*Comment*/
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "CM001", "존재하지 않는 댓글입니다."),
-    COMMENT_AUTHOR_MISMATCH(HttpStatus.FORBIDDEN, "CM002", "댓글 작성자가 아닙니다.");
+    COMMENT_AUTHOR_MISMATCH(HttpStatus.FORBIDDEN, "CM002", "댓글 작성자가 아닙니다."),
+    REPLY_DEPTH_EXCEEDED(HttpStatus.FORBIDDEN, "CM003", "원댓글에만 대댓글을 허용합니다.");
+
 
 
     private final HttpStatus status;
