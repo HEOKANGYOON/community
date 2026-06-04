@@ -13,14 +13,14 @@ public record PostSummaryResponse(
         int recommendationCount,
         LocalDateTime createdAt
 ) {
-    public static PostSummaryResponse from(Post post) {
+    public static PostSummaryResponse from(Post post, int viewCount, int recommendationCount) {
         return new PostSummaryResponse(
                 post.getId(),
                 post.getBoard().getId(),
                 post.getTitle(),
                 post.getMember().getNickname(),
-                post.getViewCount(),
-                post.getRecommendationCount(),
+                viewCount,
+                recommendationCount,
                 post.getCreatedAt()
         );
     }

@@ -11,10 +11,11 @@ public class CommentsResponse {
     private Long memberId;
     private Long parentId;
     private String content;
+    private int commentLikeCount;
     private LocalDateTime createdAt;
 
 
-    public static CommentsResponse from(Comment comment) {
+    public static CommentsResponse from(Comment comment, int commentLikeCount) {
         CommentsResponse dto = new CommentsResponse();
         if (comment.getDeletedAt() != null) {
             dto.id = comment.getId();
@@ -27,6 +28,7 @@ public class CommentsResponse {
         dto.id = comment.getId();
         dto.memberId = comment.getMember().getId();
         dto.parentId = comment.getParent() != null ? comment.getParent().getId() : null;
+        dto.commentLikeCount = commentLikeCount;
         dto.content = comment.getContent();
         dto.createdAt = comment.getCreatedAt();
         return dto;
