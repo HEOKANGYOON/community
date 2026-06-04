@@ -1,16 +1,16 @@
 package com.kangyoon.community.domain.post.controller;
 
-import com.kangyoon.community.domain.post.dto.PostCreateRequest;
-import com.kangyoon.community.domain.post.dto.PostResponse;
-import com.kangyoon.community.domain.post.dto.PostSummaryResponse;
-import com.kangyoon.community.domain.post.dto.PostUpdateRequest;
+import com.kangyoon.community.domain.post.dto.*;
 import com.kangyoon.community.domain.post.service.PostService;
 import com.kangyoon.community.global.common.ApiResponse;
+import com.kangyoon.community.global.common.PageResponse;
 import com.kangyoon.community.global.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,13 +26,12 @@ public class PostController {
     private final PostService postService;
 
     @GetMapping("/api/boards/{boardId}/posts")
-    public ResponseEntity<ApiResponse<List<PostSummaryResponse>>> getPostList(
+    public ResponseEntity<ApiResponse<PageResponse<PostSummaryResponse>>> getPostList(
             @PathVariable Long boardId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue =  "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        List<PostSummaryResponse> postList = postService.getAllPost(boardId, pageable);
-        return ResponseEntity.ok(new ApiResponse<>("리스트 조회 성공", postList));
+            @PageableDefault(size = 20) Pageable pageable) {
+
+        Page<PostSummaryResponse> postList = postService.getAllPost(boardId, pageable);
+        return ResponseEntity.ok(new ApiResponse<>("리스트 조회 성공", PageResponse.from(postList)));
     }
 
     @GetMapping("/api/boards/{boardId}/posts/{postId}")
@@ -75,6 +74,18 @@ public class PostController {
         postService.deletePost(postId, userDetails.getMemberId(), userDetails.getRole());
         return ResponseEntity.ok()
                 .body(new ApiResponse<>("게시글 삭제 성공", null));
+    }
+
+    @PostMapping("/api/boards/{boardId}/posts/{postId}/vote/up")
+    public ResponseEntity<ApiResponse<Void>> votePost(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long boardId,
+            @PathVariable Long postId,
+            @RequestBody VoteRequest request
+    ) {
+        postService.vote(userDetails.getMemberId(), postId, request.voteType());
+        return ResponseEntity.ok()
+                .body(new ApiResponse<>("게시글 추천/비추천 성공", null));
     }
 
 }
