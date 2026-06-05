@@ -76,7 +76,11 @@ public class CommentControllerTest {
         ReflectionTestUtils.setField(comment, "id", 1L);
 
         Page<Comment> page = new PageImpl<>(List.of(comment));
-        given(commentService.getComments(anyLong(), any(Pageable.class))).willReturn(page.map(CommentsResponse::from));
+        given(commentService.getComments(anyLong(), any(Pageable.class))).willReturn(page.map(comment1 -> CommentsResponse.from(
+                comment,
+                0       //댓글 좋아요 0 추천/비추천/좋아요 기능 추가로 인한 구조 변경
+        )));
+
 
         //when & then
         mockMvc.perform(get("/api/boards/1/posts/1/comments"))

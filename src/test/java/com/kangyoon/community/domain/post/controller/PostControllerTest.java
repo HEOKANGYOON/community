@@ -81,10 +81,10 @@ public class PostControllerTest {
                 .andExpect(jsonPath("$.data.content").isArray())
                 .andExpect(jsonPath("$.data.content").isEmpty());
     }
-
     @Test
     void 단건_조회_성공() throws Exception {
-        PostResponse postResponse = PostResponse.from(post);
+        //조회수, 추천수, 비추천수 임시로 0넣음
+        PostResponse postResponse = PostResponse.from(post, 0 ,0, 0);
         given(postService.getPost(any())).willReturn(postResponse);
 
         //when
@@ -102,7 +102,8 @@ public class PostControllerTest {
         //given
         CustomUserDetails userDetails = new CustomUserDetails(member);
         PostCreateRequest postCreateRequest = new PostCreateRequest(post.getTitle(), post.getContent());    // BeforeEach에 생성한 객체 값과 동일하게 넣어줌
-        PostResponse response = PostResponse.from(post);
+        //게시글 작성 직후에는 Serviced에서도 똑같이 0으로 내려줌
+        PostResponse response = PostResponse.from(post, 0 ,0 ,0);
 
         given(postService.writePost(any(), any(), any(), any())).willReturn(response);
 
@@ -139,7 +140,8 @@ public class PostControllerTest {
 
         ReflectionTestUtils.setField(post, "title", postUpdateRequest.title());
         ReflectionTestUtils.setField(post, "content", postUpdateRequest.content());
-        PostResponse postResponse = PostResponse.from(post);    // postService 응답으로 줄 postResponse
+        //실제는 redis에서 받아온 조회수, 추천수, 게시글 수를 내려줌
+        PostResponse postResponse = PostResponse.from(post, 0, 0, 0);
 
         given(postService.editPost(any(), any(), any(), any())).willReturn(postResponse);
 
