@@ -28,9 +28,11 @@ public class PostController {
     @GetMapping("/api/boards/{boardId}/posts")
     public ResponseEntity<ApiResponse<PageResponse<PostSummaryResponse>>> getPostList(
             @PathVariable Long boardId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String searchType,
             @PageableDefault(size = 20) Pageable pageable) {
 
-        Page<PostSummaryResponse> postList = postService.getAllPost(boardId, pageable);
+        Page<PostSummaryResponse> postList = postService.getAllPost(boardId, keyword, searchType, pageable);
         return ResponseEntity.ok(new ApiResponse<>("리스트 조회 성공", PageResponse.from(postList)));
     }
 

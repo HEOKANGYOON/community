@@ -72,7 +72,7 @@ public class PostControllerTest {
     @Test
     void 목록_조회_성공() throws Exception{
         //given
-        given(postService.getAllPost(any(), any())).willReturn(Page.empty());
+        given(postService.getAllPost(any(), any(), any(), any())).willReturn(Page.empty());
 
         //when & then
         mockMvc.perform(get("/api/boards/1/posts"))
