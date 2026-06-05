@@ -2,11 +2,13 @@ package com.kangyoon.community.domain.comment.repository;
 
 import com.kangyoon.community.domain.comment.entity.Comment;
 import com.kangyoon.community.domain.comment.entity.QComment;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.support.PageableExecutionUtils;
 
 import java.util.List;
 
@@ -30,13 +32,11 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
                 .fetch();
 
         //게시글에 포함된 댓글 수 카운트
-        Long total = queryFactory
+        JPAQuery<Long> total = queryFactory
                 .select(comment.count())
                 .from(comment)
-                .where(comment.post.id.eq(postId))
-                .fetchOne();
+                .where(comment.post.id.eq(postId));
 
-        return new PageImpl<>(content, pageable, total != null ? total : 0L);
+        return PageableExecutionUtils.getPage(content, pageable, total::fetchOne);
     }
-
 }
