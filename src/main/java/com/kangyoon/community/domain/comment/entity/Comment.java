@@ -22,6 +22,7 @@ public class Comment extends BaseEntity {
         this.member = member;
         this.parent = parent;
         this.content = content;
+        this.likeCount = 0;
     }
 
     public static Comment createComment(Post post, Member member, String content) {
@@ -46,6 +47,7 @@ public class Comment extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "member_id", nullable = false) private Member member;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "parent_id") private Comment parent;
     @Column(nullable = false) private String content;
+    @Column(nullable = false) private int likeCount;
     private LocalDateTime deletedAt;
 
     public void commentEdit(String content) {

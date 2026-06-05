@@ -5,6 +5,8 @@ import com.kangyoon.community.domain.board.repository.BoardManagerRepository;
 import com.kangyoon.community.domain.comment.dto.CommentDetailResponse;
 import com.kangyoon.community.domain.comment.dto.CommentsResponse;
 import com.kangyoon.community.domain.comment.entity.Comment;
+import com.kangyoon.community.domain.comment.entity.CommentLike;
+import com.kangyoon.community.domain.comment.repository.CommentLikeRepository;
 import com.kangyoon.community.domain.comment.repository.CommentRepository;
 import com.kangyoon.community.domain.member.entity.Member;
 import com.kangyoon.community.domain.member.repository.MemberRepository;
@@ -12,16 +14,15 @@ import com.kangyoon.community.domain.post.entity.Post;
 import com.kangyoon.community.domain.post.repository.PostRepository;
 import com.kangyoon.community.global.exception.CustomException;
 import com.kangyoon.community.global.exception.ErrorCode;
+import com.kangyoon.community.infrastructure.redis.RedisService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -34,39 +35,25 @@ public class CommentService {
     private final PostRepository postRepository;
     private final MemberRepository memberRepository;
     private final BoardManagerRepository boardManagerRepository;
+    private final CommentLikeRepository commentLikeRepository;
+    private final RedisService redisService;
 
     //게시글의 전체 댓글 조회
     @Transactional(readOnly = true)
     public Page<CommentsResponse> getComments(Long postId, Pageable pageable) {
-//        // 원댓글 조회
-//        List<Comment> parentComments = commentRepository.findByPostIdAndParentIsNull(postId);
-//
-//        // 원댓글 DTO 변환 + Map으로 만듦
-//        Map<Long, CommentsResponse> parentMap = parentComments.stream()
-//                .map(CommentsResponse::from)
-//                .collect(toMap(CommentsResponse::getId,
-//                        dto -> dto,
-//                        (a, b) -> a,
-//                        LinkedHashMap::new
-//                ));
-//
-//        // 대댓글 조회
-//        List<Long> parentIds = parentComments.stream()
-//                .map(Comment::getId)
-//                .toList();
-//        List<Comment> childrenComments = commentRepository.findBydParentIdInOrderByCreateAtAsc(parentIds);
-//
-//        // 대댓글 DTO 변환 후 원댓글의 child 리스트에 넣어줌
-//        childrenComments.forEach(child -> {
-//            CommentsResponse childDto = CommentsResponse.from(child);
-//            parentMap.get(child.getParent().getId()).addChild(childDto);
-//        });
-//
-//        return new ArrayList<>(parentMap.values());
 
+        Page<Comment> comments = commentRepository.findCommentsByPostId(postId, pageable);
 
-        return commentRepository.findCommentsByPostId(postId, pageable)
-                .map(CommentsResponse::from);
+        List<Long> commentIds = comments.getContent().stream()
+                .map(Comment::getId)
+                .toList();
+
+        Map<Long, Integer> commnetLikeMap = redisService.getCommentLikeList(commentIds);
+
+        return comments.map(comment -> CommentsResponse.from(
+                comment,
+                commnetLikeMap.getOrDefault(comment.getId(), comment.getLikeCount())
+        ));
     }
 
     @Transactional(readOnly = true)
@@ -131,6 +118,33 @@ public class CommentService {
             throw new CustomException(ErrorCode.COMMENT_AUTHOR_MISMATCH);
         }
         comment.commentDelete();
+    }
+
+    public void commentLikeToggle(Long commentId, Long memberId) {
+
+        Comment comment = commentRepository.findByIdAndDeletedAtIsNull(commentId)
+                .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
+
+        Optional<CommentLike> existing = commentLikeRepository.findByMemberIdAndCommentId(memberId, commentId);
+
+//      현재는 flush 비용보다 단순성이 더 중요
+//      향후 AFTER_COMMIT 이벤트로 정합성 개선 예정
+        if (existing.isPresent()) {
+            commentLikeRepository.delete(existing.get());
+            redisService.decreaseCommentLike(commentId);
+        } else {
+            Member member = memberRepository.findById(memberId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+
+            CommentLike commentLike = new CommentLike(member, comment);
+
+            try {
+                commentLikeRepository.save(commentLike);
+            } catch (DataIntegrityViolationException e) {
+                return;
+            }
+            redisService.increaseCommentLike(commentId);
+        }
     }
 
 

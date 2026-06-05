@@ -110,7 +110,7 @@ public class BoardControllerTest {
         mockMvc.perform(patch("/api/admin/boards/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -146,7 +146,7 @@ public class BoardControllerTest {
     void ADMIN_게시판_삭제_성공() throws Exception {
         //when
         mockMvc.perform(delete("/api/admin/boards/1"))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk());
     }
 
     @Test

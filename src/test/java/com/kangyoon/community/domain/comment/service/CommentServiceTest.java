@@ -12,6 +12,7 @@ import com.kangyoon.community.domain.post.entity.Post;
 import com.kangyoon.community.domain.post.repository.PostRepository;
 import com.kangyoon.community.global.exception.CustomException;
 import com.kangyoon.community.global.exception.ErrorCode;
+import com.kangyoon.community.infrastructure.redis.RedisService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,6 +44,7 @@ public class CommentServiceTest {
     @Mock private PostRepository postRepository;
     @Mock private MemberRepository memberRepository;
     @Mock private BoardManagerRepository boardManagerRepository;
+    @Mock private RedisService redisService;
 
     @InjectMocks private CommentService commentService;
 

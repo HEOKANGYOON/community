@@ -70,8 +70,6 @@ public class CommentController {
         return ResponseEntity.ok(new ApiResponse<>("대댓글 작성 성공", null));
     }
 
-
-
     @PatchMapping("/api/boards/{boardId}/posts/{postId}/comments/{commentId}")
     public ResponseEntity<ApiResponse<Void>> commentEdit(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -93,6 +91,17 @@ public class CommentController {
             ) {
         commentService.commentDelete(commentId, userDetails.getMemberId(), boardId, userDetails.getRole());
         return ResponseEntity.ok(new ApiResponse<>("댓글 삭제 성공", null));
+    }
+
+    @PostMapping("/api/boards/{boardId}/posts/{postId}/comments/{commentId}/like")
+    public ResponseEntity<ApiResponse<Void>> commentLike(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long boardId,
+            @PathVariable Long postId,
+            @PathVariable Long commentId
+    ) {
+        commentService.commentLikeToggle(commentId, userDetails.getMemberId());
+        return ResponseEntity.ok(new ApiResponse<>("댓글 좋아요 토글 성공", null));
     }
 
 }

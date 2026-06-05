@@ -16,16 +16,16 @@ public record PostResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    public static PostResponse from(Post post) {
+    public static PostResponse from(Post post, int viewCount, int recommendationCount, int disrecommendationCount) {
         return new PostResponse(
                 post.getId(),
                 post.getBoard().getId(),
                 post.getTitle(),
                 post.getContent(),
                 post.getMember().getNickname(),
-                post.getViewCount(),
-                post.getRecommendationCount(),
-                post.getDisrecommendationCount(),
+                viewCount,
+                recommendationCount,
+                disrecommendationCount,
                 post.getCreatedAt(),
                 post.getUpdatedAt()
         );

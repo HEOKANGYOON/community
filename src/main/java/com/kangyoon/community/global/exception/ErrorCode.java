@@ -40,6 +40,7 @@ public enum ErrorCode {
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "존재하지 않는 게시글입니다."),
     POST_AUTHOR_MISMATCH(HttpStatus.FORBIDDEN, "P002", "게시글 작성자가 아닙니다."),
     POST_ALREADY_DELETED(HttpStatus.FORBIDDEN, "P003", "이미 삭제된 게시글입니다."),
+    DUPLICATE_VOTE(HttpStatus.FORBIDDEN, "P004", "이미 추천/비추천한 게시글입니다."),
 
 
     /*Comment*/

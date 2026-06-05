@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -71,19 +72,19 @@ public class PostControllerTest {
     @Test
     void 목록_조회_성공() throws Exception{
         //given
-        given(postService.getAllPost(any(), any())).willReturn(List.of());
+        given(postService.getAllPost(any(), any())).willReturn(Page.empty());
 
         //when & then
         mockMvc.perform(get("/api/boards/1/posts"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("리스트 조회 성공"))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data").isEmpty());
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content").isEmpty());
     }
-
     @Test
     void 단건_조회_성공() throws Exception {
-        PostResponse postResponse = PostResponse.from(post);
+        //조회수, 추천수, 비추천수 임시로 0넣음
+        PostResponse postResponse = PostResponse.from(post, 0 ,0, 0);
         given(postService.getPost(any())).willReturn(postResponse);
 
         //when
@@ -101,7 +102,8 @@ public class PostControllerTest {
         //given
         CustomUserDetails userDetails = new CustomUserDetails(member);
         PostCreateRequest postCreateRequest = new PostCreateRequest(post.getTitle(), post.getContent());    // BeforeEach에 생성한 객체 값과 동일하게 넣어줌
-        PostResponse response = PostResponse.from(post);
+        //게시글 작성 직후에는 Serviced에서도 똑같이 0으로 내려줌
+        PostResponse response = PostResponse.from(post, 0 ,0 ,0);
 
         given(postService.writePost(any(), any(), any(), any())).willReturn(response);
 
@@ -138,7 +140,8 @@ public class PostControllerTest {
 
         ReflectionTestUtils.setField(post, "title", postUpdateRequest.title());
         ReflectionTestUtils.setField(post, "content", postUpdateRequest.content());
-        PostResponse postResponse = PostResponse.from(post);    // postService 응답으로 줄 postResponse
+        //실제는 redis에서 받아온 조회수, 추천수, 게시글 수를 내려줌
+        PostResponse postResponse = PostResponse.from(post, 0, 0, 0);
 
         given(postService.editPost(any(), any(), any(), any())).willReturn(postResponse);
 

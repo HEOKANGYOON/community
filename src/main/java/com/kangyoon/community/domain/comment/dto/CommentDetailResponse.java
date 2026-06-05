@@ -10,6 +10,7 @@ public record CommentDetailResponse(
         Long memberId,
         Long parentId,
         String content,
+        int likeCount,
         LocalDateTime createdAt
 ) {
     public static CommentDetailResponse from(Comment comment) {
@@ -19,6 +20,7 @@ public record CommentDetailResponse(
                 comment.getMember().getId(),
                 comment.getParent() != null ? comment.getParent().getId() : null,
                 comment.getContent(),
+                comment.getLikeCount(),
                 comment.getCreatedAt()
         );
     }
