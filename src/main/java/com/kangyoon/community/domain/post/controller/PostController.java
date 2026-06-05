@@ -76,7 +76,7 @@ public class PostController {
                 .body(new ApiResponse<>("게시글 삭제 성공", null));
     }
 
-    @PostMapping("/api/boards/{boardId}/posts/{postId}/vote/up")
+    @PostMapping("/api/boards/{boardId}/posts/{postId}/vote")
     public ResponseEntity<ApiResponse<Void>> votePost(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long boardId,

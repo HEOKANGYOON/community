@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -71,14 +72,14 @@ public class PostControllerTest {
     @Test
     void 목록_조회_성공() throws Exception{
         //given
-        given(postService.getAllPost(any(), any())).willReturn(List.of());
+        given(postService.getAllPost(any(), any())).willReturn(Page.empty());
 
         //when & then
         mockMvc.perform(get("/api/boards/1/posts"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("리스트 조회 성공"))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data").isEmpty());
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content").isEmpty());
     }
 
     @Test
