@@ -36,9 +36,9 @@ public class PostService {
     private final PostVoteRepository postVoteRepository;
     private final RedisService redisService;
 
-    public Page<PostSummaryResponse> getAllPost(Long boardId, Pageable pageable) {
+    public Page<PostSummaryResponse> getAllPost(Long boardId, String keyword, String searchType, Pageable pageable) {
 
-        Page<Post> posts = postRepository.findByBoardIdAndDeletedAtIsNull(boardId, pageable);
+        Page<Post> posts = postRepository.findPostsByBoard(boardId, keyword, searchType, pageable);
 
         List<Long> postIds = posts.getContent().stream()
                 .map(Post::getId)
