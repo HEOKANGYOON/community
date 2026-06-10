@@ -109,11 +109,13 @@ CREATE TABLE IF NOT EXISTS comment_like (
 CREATE TABLE IF NOT EXISTS notification (
     id          BIGINT          NOT NULL    AUTO_INCREMENT,
     member_id   BIGINT          NOT NULL,
+    notification_type   VARCHAR(20)     NOT NULL,
     target_type VARCHAR(20)     NOT NULL,
     target_id   BIGINT          NOT NULL,
     content     VARCHAR(50)     NOT NULL,
     is_read     TINYINT(1)      NOT NULL    DEFAULT 0,
     created_at  DATETIME        NOT NULL,
+    deleted_at  DATETIME,
 
     PRIMARY KEY (id)
 );
