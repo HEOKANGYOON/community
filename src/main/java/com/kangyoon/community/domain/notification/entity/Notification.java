@@ -40,4 +40,13 @@ public class Notification extends BaseTimeEntity {
     @Column(nullable = false) private boolean isRead;
     private LocalDateTime deletedAt;
 
+
+    public void notificationRead() {
+        this.isRead = true;
+    }
+
+    public void notificationDelete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
 }

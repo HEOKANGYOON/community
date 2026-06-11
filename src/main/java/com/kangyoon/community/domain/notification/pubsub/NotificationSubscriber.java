@@ -24,7 +24,9 @@ public class NotificationSubscriber {
 
             sseEmitterRepository.findByUserId(userId).ifPresent(emitter -> {
                 try {
-                    emitter.send(SseEmitter.event().data(response));
+                    emitter.send(SseEmitter.event()
+                            .id(String.valueOf(response.id()))
+                            .data(response));
                 } catch (IOException e) {
                     sseEmitterRepository.deleteByUserId(userId);
                 }
