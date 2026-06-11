@@ -12,5 +12,5 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     List<Notification> findByMemberIdAndIdGreaterThanAndDeletedAtIsNull(Long memberId, Long notificationId);
     List<Notification> findTop30ByMemberIdAndDeletedAtIsNullOrderByCreatedAtDesc(Long memberId);
-    Optional<Notification> findByIdAndMemberIdAndDeletedAtIsNull(Long notificationId, Long memberId)
+    Optional<Notification> findByIdAndMemberIdAndDeletedAtIsNull(Long notificationId, Long memberId);
 }
