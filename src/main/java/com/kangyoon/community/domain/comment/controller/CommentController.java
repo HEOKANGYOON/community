@@ -100,7 +100,7 @@ public class CommentController {
             @PathVariable Long postId,
             @PathVariable Long commentId
     ) {
-        commentService.commentLikeToggle(commentId, userDetails.getMemberId());
+        commentService.commentLikeToggle(commentId, userDetails.getMemberId(), postId);
         return ResponseEntity.ok(new ApiResponse<>("댓글 좋아요 토글 성공", null));
     }
 

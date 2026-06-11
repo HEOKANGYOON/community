@@ -10,12 +10,16 @@ import com.kangyoon.community.domain.comment.repository.CommentLikeRepository;
 import com.kangyoon.community.domain.comment.repository.CommentRepository;
 import com.kangyoon.community.domain.member.entity.Member;
 import com.kangyoon.community.domain.member.repository.MemberRepository;
+import com.kangyoon.community.domain.notification.entity.NotificationTargetType;
+import com.kangyoon.community.domain.notification.entity.NotificationType;
+import com.kangyoon.community.domain.notification.event.NotificationEvent;
 import com.kangyoon.community.domain.post.entity.Post;
 import com.kangyoon.community.domain.post.repository.PostRepository;
 import com.kangyoon.community.global.exception.CustomException;
 import com.kangyoon.community.global.exception.ErrorCode;
 import com.kangyoon.community.infrastructure.redis.RedisService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +41,7 @@ public class CommentService {
     private final BoardManagerRepository boardManagerRepository;
     private final CommentLikeRepository commentLikeRepository;
     private final RedisService redisService;
+    private final ApplicationEventPublisher eventPublisher;
 
     //게시글의 전체 댓글 조회
     @Transactional(readOnly = true)
@@ -74,6 +79,9 @@ public class CommentService {
         Comment comment = Comment.createComment(post, member, content);
 
         commentRepository.save(comment);
+        if (!post.getMember().getId().equals(memberId)) {
+            eventPublisher.publishEvent(new NotificationEvent(post.getMember().getId(), NotificationType.COMMENT, NotificationTargetType.POST, postId));
+        }
     }
 
     public void replyWrite(Long postId, Long memberId, Long parentId, String content) {
@@ -93,6 +101,10 @@ public class CommentService {
 
         Comment reply = Comment.createReply(post, member, parent, content);
         commentRepository.save(reply);
+
+        if (!parent.getMember().getId().equals(memberId)) {
+            eventPublisher.publishEvent(new NotificationEvent(parent.getMember().getId(), NotificationType.REPLY, NotificationTargetType.COMMENT, postId));
+        }
     }
 
     public void commentEdit(Long commentId, Long memberId, String content) {
@@ -120,7 +132,9 @@ public class CommentService {
         comment.commentDelete();
     }
 
-    public void commentLikeToggle(Long commentId, Long memberId) {
+    public void commentLikeToggle(Long commentId, Long memberId, Long postId) {
+        Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
+                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
         Comment comment = commentRepository.findByIdAndDeletedAtIsNull(commentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
@@ -144,6 +158,18 @@ public class CommentService {
                 return;
             }
             redisService.increaseCommentLike(commentId);
+
+            //게시글 작성자가 댓글 좋아요 누른 경우 && 댓글 작성자가 자신의 댓글에 좋아요 누르지 않는경우
+            if (post.getMember().getId().equals(memberId)
+                    && !comment.getMember().getId().equals(memberId)) {
+                eventPublisher.publishEvent(new NotificationEvent(
+                        comment.getMember().getId(),
+                        NotificationType.COMMENT_LIKE,
+                        NotificationTargetType.COMMENT,
+                        postId
+                ));
+            }
+
         }
     }
 
