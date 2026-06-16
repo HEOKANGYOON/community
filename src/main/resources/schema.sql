@@ -61,15 +61,6 @@ CREATE TABLE IF NOT EXISTS post (
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS post_image (
-    id          BIGINT          NOT NULL    AUTO_INCREMENT,
-    post_id     BIGINT          NOT NULL,
-    image_url   VARCHAR(500)    NOT NULL,
-    created_at  DATETIME        NOT NULL,
-
-    PRIMARY KEY (id)
-);
-
 CREATE TABLE IF NOT EXISTS post_vote (
     id          BIGINT          NOT NULL    AUTO_INCREMENT,
     member_id   BIGINT          NOT NULL,
@@ -129,8 +120,6 @@ ALTER TABLE board_manager ADD FOREIGN KEY (board_id) REFERENCES board(id);
 ALTER TABLE post ADD FOREIGN KEY (board_id) REFERENCES board(id);
 
 ALTER TABLE post ADD FOREIGN KEY (member_id) REFERENCES member(id);
-
-ALTER TABLE post_image ADD FOREIGN KEY (post_id) REFERENCES post(id);
 
 ALTER TABLE post_vote ADD FOREIGN KEY (member_id) REFERENCES member(id);
 

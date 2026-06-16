@@ -5,25 +5,25 @@ import com.kangyoon.community.domain.post.service.PostService;
 import com.kangyoon.community.global.common.ApiResponse;
 import com.kangyoon.community.global.common.PageResponse;
 import com.kangyoon.community.global.security.CustomUserDetails;
+import com.kangyoon.community.infrastructure.s3.S3Service;
+import com.kangyoon.community.infrastructure.s3.dto.PresignedUrlResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
-@Controller
+@RestController
 @RequiredArgsConstructor
 public class PostController {
 
     private final PostService postService;
+    private final S3Service s3Service;
 
     @GetMapping("/api/boards/{boardId}/posts")
     public ResponseEntity<ApiResponse<PageResponse<PostSummaryResponse>>> getPostList(
@@ -90,4 +90,12 @@ public class PostController {
                 .body(new ApiResponse<>("게시글 추천/비추천 성공", null));
     }
 
+    @PostMapping("/api/boards/{boardId}/posts/presigned-url")
+    public ResponseEntity<ApiResponse<PresignedUrlResponse>> getPresignedUrl(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody PresignedUrlRequest request
+            ) {
+        PresignedUrlResponse response = s3Service.generatePresignedUrl(request.fileName(), request.contentType());
+        return ResponseEntity.ok(new ApiResponse<>("Presigned URL 발급 성공", response));
+    }
 }

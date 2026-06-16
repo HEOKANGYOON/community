@@ -87,7 +87,6 @@ public class PostService {
                 .orElseThrow(() -> new CustomException(ErrorCode.BOARD_NOT_FOUND));
 
         Post post = Post.createPost(member, board, title, content);
-
         Post saved = postRepository.save(post);
 
         //게시글 작성 직후는 조회 0, 댓글 0 추천 / 비추천 0 을 내려줌
