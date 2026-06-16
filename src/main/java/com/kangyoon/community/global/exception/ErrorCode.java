@@ -49,7 +49,10 @@ public enum ErrorCode {
     REPLY_DEPTH_EXCEEDED(HttpStatus.FORBIDDEN, "CM003", "원댓글에만 대댓글을 허용합니다."),
 
     /*Notification*/
-    NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "존재하지 않는 알림입니다.");
+    NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "존재하지 않는 알림입니다."),
+
+    /*AWS S3 IMAGE*/
+    FORMAT_NOT_SUPPORTED(HttpStatus.CONFLICT, "I001", "지원하지 않는 형식입니다.");
 
 
 
