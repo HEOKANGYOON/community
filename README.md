@@ -74,8 +74,8 @@
 | 검색 기능 개선 (LIKE → FULLTEXT 고려 중) | ✅ 완료 |
 | SSE 실시간 알림                      | ✅ 완료 |
 | Swagger / OpenAPI               | 진행 예정 |
-| S3 이미지 업로드                      | 진행 예정 |
-| OAuth2 로그인                      | 진행 예정 |
+| S3 이미지 업로드                      | ✅ 완료 |
+| OAuth2 로그인                      | ✅ 완료 |
 | Docker + AWS EC2 배포 + CI/CD     | 진행 예정 |
 
 
