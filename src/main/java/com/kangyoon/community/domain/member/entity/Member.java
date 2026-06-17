@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -39,6 +40,7 @@ public class Member extends BaseEntity {
         return Member.builder()
                 .email(email)
                 .nickname(nickname)
+                .password(UUID.randomUUID().toString())     //쓰이지 않는 random UUID 값 nullable = false여서 넣어줌
                 .provider(provider)
                 .providerId(providerId)
                 .role(Role.USER)
