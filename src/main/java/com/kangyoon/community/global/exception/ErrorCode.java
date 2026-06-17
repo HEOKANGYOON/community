@@ -20,6 +20,8 @@ public enum ErrorCode {
     DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "M003", "이미 사용 중인 닉네임입니다."),
     DUPLICATE_MEMBER(HttpStatus.CONFLICT, "M004", "이미 사용중인 이메일 또는 닉네입입니다."),
     INVALID_LOGIN(HttpStatus.UNAUTHORIZED, "M005", "이메일, 비밀번호를 확인해주세요."),
+    INVALID_OAUTH_USER(HttpStatus.UNAUTHORIZED, "M006", "유효하지 않은 OAuth 사용자입니다."),
+
 
     /*Auth*/
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A001", "유효하지 않은 토큰입니다."),
