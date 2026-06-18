@@ -8,6 +8,8 @@ import com.kangyoon.community.domain.member.service.MemberService;
 import com.kangyoon.community.global.common.ApiResponse;
 import com.kangyoon.community.global.exception.CustomException;
 import com.kangyoon.community.global.exception.ErrorCode;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,11 @@ public class MemberController {
 
     private final MemberService memberService;
 
+    @Tag(name = "Member", description = "Member API")
+    @Operation(
+            summary = "회원가입",
+            description = "입력한 email과 password로 회원가입합니다."
+    )
     @PostMapping("/api/auth/signup")
     public ResponseEntity<ApiResponse<Void>> signup(@Valid @RequestBody SignupRequest request) {
         memberService.signup(request.email(), request.password(), request.nickname());
@@ -35,6 +42,11 @@ public class MemberController {
                 .body(new ApiResponse<>("회원가입 성공", null));
     }
 
+    @Tag(name = "Member", description = "Member API")
+    @Operation(
+            summary = "로그인",
+            description = "입력한 email과 password로 로그인합니다."
+    )
     @PostMapping("/api/auth/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
 
@@ -52,6 +64,11 @@ public class MemberController {
         return ResponseEntity.ok(new ApiResponse<>("로그인 성공", new LoginResponse(tokens.accessToken())));
     }
 
+    @Tag(name = "Member", description = "Member API")
+    @Operation(
+            summary = "리프레시 토큰 재발급",
+            description = "브라우저에 저장된 쿠키를 받아 리프레시 토큰 검증 후 재발급합니다."
+    )
     @PostMapping("/api/auth/refresh")
     public ResponseEntity<ApiResponse<LoginResponse>> refresh(@CookieValue(name = "refreshToken", required = false) String refreshToken, HttpServletResponse response) {
 
