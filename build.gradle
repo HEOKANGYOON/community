@@ -48,8 +48,11 @@ dependencies {
 
 	//AWS S3 SDK V2
 	implementation 'software.amazon.awssdk:s3:2.25.60'
-}
 
+	//Swagger
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
+
+}
 
 
 tasks.named('test') {

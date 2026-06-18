@@ -7,6 +7,8 @@ import com.kangyoon.community.domain.comment.service.CommentService;
 import com.kangyoon.community.global.common.ApiResponse;
 import com.kangyoon.community.global.common.PageResponse;
 import com.kangyoon.community.global.security.CustomUserDetails;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -23,6 +25,11 @@ public class CommentController {
 
     private final CommentService commentService;
 
+    @Tag(name = "Comment", description = "Comment API")
+    @Operation(
+            summary = "댓글 조회",
+            description = "선택한 게시판의 게시글의 댓글들을 조회합니다.(페이징)"
+    )
     @GetMapping("/api/boards/{boardId}/posts/{postId}/comments")
     public ResponseEntity<ApiResponse<PageResponse<CommentsResponse>>> getComments(
             @PathVariable Long boardId,
@@ -33,6 +40,11 @@ public class CommentController {
         return ResponseEntity.ok(new ApiResponse<>("댓글 조회 성공", PageResponse.from(comments)));
     }
 
+    @Tag(name = "Comment", description = "Comment API")
+    @Operation(
+            summary = "댓글 상세 조회",
+            description = "선택한 게시판의 게시글의 댓글 중 선택한 댓글의 정보를 상세 조회합니다."
+    )
     @GetMapping("/api/boards/{boardId}/posts/{postId}/comments/{commentId}")
     public ResponseEntity<ApiResponse<CommentDetailResponse>> getCommentDetail(
             @PathVariable Long boardId,
@@ -43,6 +55,11 @@ public class CommentController {
         return ResponseEntity.ok(new ApiResponse<>("댓글 상세 조회 성공", commentDetail));
     }
 
+    @Tag(name = "Comment", description = "Comment API")
+    @Operation(
+            summary = "댓글 작성",
+            description = "선택한 게시판의 게시글에 댓글을 작성합니다."
+    )
     @PostMapping("/api/boards/{boardId}/posts/{postId}/comments")
     public ResponseEntity<ApiResponse<Void>> commentWrite(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -56,6 +73,11 @@ public class CommentController {
         return ResponseEntity.ok(new ApiResponse<>("댓글 작성 성공", null));
     }
 
+    @Tag(name = "Comment", description = "Comment API")
+    @Operation(
+            summary = "대댓글 작성",
+            description = "선택한 게시판의 게시글에 댓글에 대댓글을 작성합니다."
+    )
     @PostMapping("/api/boards/{boardId}/posts/{postId}/comments/{commentId}/replies")
     public ResponseEntity<ApiResponse<Void>> replyWrite(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -70,6 +92,11 @@ public class CommentController {
         return ResponseEntity.ok(new ApiResponse<>("대댓글 작성 성공", null));
     }
 
+    @Tag(name = "Comment", description = "Comment API")
+    @Operation(
+            summary = "댓글(대댓글) 수정",
+            description = "선택한 게시판의 게시글에 댓글(대댓글)을 수정합니다.(자신의 댓글/대댓글만 수정 가능)"
+    )
     @PatchMapping("/api/boards/{boardId}/posts/{postId}/comments/{commentId}")
     public ResponseEntity<ApiResponse<Void>> commentEdit(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -82,6 +109,11 @@ public class CommentController {
         return ResponseEntity.ok(new ApiResponse<>("댓글 수정 성공", null));
     }
 
+    @Tag(name = "Comment", description = "Comment API")
+    @Operation(
+            summary = "댓글(대댓글) 삭제",
+            description = "선택한 게시판의 게시글의 댓글(대댓글)을 삭제합니다.(자신의 댓글/대댓글만 삭제 가능)"
+    )
     @DeleteMapping("/api/boards/{boardId}/posts/{postId}/comments/{commentId}")
     public ResponseEntity<ApiResponse<Void>> commentDelete(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -93,6 +125,11 @@ public class CommentController {
         return ResponseEntity.ok(new ApiResponse<>("댓글 삭제 성공", null));
     }
 
+    @Tag(name = "Comment", description = "Comment API")
+    @Operation(
+            summary = "댓글 좋아요",
+            description = "선택한 게시판의 게시글의 댓글에 좋아요를 표시합니다.(토클, 취소 가능)"
+    )
     @PostMapping("/api/boards/{boardId}/posts/{postId}/comments/{commentId}/like")
     public ResponseEntity<ApiResponse<Void>> commentLike(
             @AuthenticationPrincipal CustomUserDetails userDetails,
