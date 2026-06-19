@@ -46,6 +46,16 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/oauth2/**",
                                 "/login/oauth2/**").permitAll()
+                        .requestMatchers(   // 정적 페이지 추가용
+                                "/",
+                                "/index.html",
+                                "/login.html",
+                                "/register.html",
+                                "/oauth/callback.html",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> oauth
