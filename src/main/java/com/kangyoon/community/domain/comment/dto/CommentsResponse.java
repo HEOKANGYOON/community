@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 public class CommentsResponse {
     private Long id;
     private Long memberId;
+    private String nickname;
     private Long parentId;
     private String content;
     private int commentLikeCount;
@@ -19,6 +20,7 @@ public class CommentsResponse {
         CommentsResponse dto = new CommentsResponse();
         if (comment.getDeletedAt() != null) {
             dto.id = comment.getId();
+            dto.nickname = null;
             dto.content = "삭제된 댓글입니다.";
             dto.createdAt = comment.getCreatedAt();
             dto.parentId = comment.getParent() != null ? comment.getParent().getId() : null;
@@ -28,6 +30,7 @@ public class CommentsResponse {
         dto.id = comment.getId();
         dto.memberId = comment.getMember().getId();
         dto.parentId = comment.getParent() != null ? comment.getParent().getId() : null;
+        dto.nickname = comment.getMember().getNickname();
         dto.commentLikeCount = commentLikeCount;
         dto.content = comment.getContent();
         dto.createdAt = comment.getCreatedAt();
