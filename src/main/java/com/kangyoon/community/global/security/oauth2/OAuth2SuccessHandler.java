@@ -5,12 +5,14 @@ import com.kangyoon.community.global.security.JwtProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -25,6 +27,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final JwtProvider jwtProvider;
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
+
+    @Value("${oauth2.redirect-uri}")
+    private String redirectUri;    // "http://localhost:8080/oauth/callback.html"
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -45,21 +50,31 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)  //배포시 true해야함 로컬은 http라서 쿠키 전달안됨
                 .path("/")
                 .maxAge(Duration.ofDays(14))
                 .build();
         //헤더로 쿠키(리프레시 토큰) 내려줌
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
+        //
+        String targetUrl = UriComponentsBuilder
+                .fromUriString(redirectUri)
+                .queryParam("token", accessToken)
+                .build()
+                .toUriString();
 
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("message", "로그인 성공");
-        body.put("data", Map.of("accessToken", accessToken));
+        response.sendRedirect(targetUrl);
 
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-        response.getWriter().write(objectMapper.writeValueAsString(body));
+
+
+//        Map<String, Object> body = new LinkedHashMap<>();
+//        body.put("message", "로그인 성공");
+//        body.put("data", Map.of("accessToken", accessToken));
+//
+//        response.setStatus(HttpServletResponse.SC_OK);
+//        response.setContentType("application/json");
+//        response.setCharacterEncoding("UTF-8");
+//        response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 }

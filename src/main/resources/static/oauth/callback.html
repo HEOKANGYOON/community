@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>로그인 처리 중...</title>
+</head>
+<body>
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+
+    if (token) {
+        localStorage.setItem("accessToken", token);
+        window.location.replace("/index.html"); // 성공 → 메인으로
+    } else {
+        window.location.replace("/login.html?error=oauth"); // 실패 → 로그인으로
+    }
+</script>
+</body>
+</html>
