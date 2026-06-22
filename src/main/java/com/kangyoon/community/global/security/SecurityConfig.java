@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -49,13 +48,19 @@ public class SecurityConfig {
                         .requestMatchers(   // 정적 페이지 추가용
                                 "/",
                                 "/index.html",
+                                "/static/index.html",
                                 "/login.html",
                                 "/register.html",
+                                "/board.html",
+                                "/post.html",
+                                "/post-write.html",
+                                "/post-edit.html",
                                 "/oauth/callback.html",
                                 "/css/**",
                                 "/js/**",
                                 "/images/**"
                         ).permitAll()
+                        .requestMatchers("/favicon.ico").permitAll()    //아이콘 불러오기
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> oauth

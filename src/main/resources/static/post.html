@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시글 - 커뮤니티</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar-brand { font-weight: 500; }
+
+        .post-card {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.75rem;
+            margin-bottom: 1rem;
+        }
+        .post-title { font-size: 20px; font-weight: 500; margin-bottom: 0.5rem; }
+        .post-meta { font-size: 13px; color: #6c757d; display: flex; gap: 16px; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #f1f3f5; }
+        .post-content { font-size: 15px; line-height: 1.8; min-height: 100px; white-space: pre-wrap; word-break: break-word; }
+
+        .vote-wrap { display: flex; justify-content: center; gap: 12px; padding: 1.5rem 0; border-top: 1px solid #f1f3f5; margin-top: 1.5rem; }
+        .btn-vote { display: flex; align-items: center; gap: 6px; padding: 8px 24px; border-radius: 20px; font-size: 14px; font-weight: 500; border: 1px solid #dee2e6; background: #fff; cursor: pointer; transition: all 0.15s; }
+        .btn-vote.up:hover { background: #e8f4fd; border-color: #74b9ff; color: #0984e3; }
+        .btn-vote.down:hover { background: #ffeaea; border-color: #fab1a0; color: #d63031; }
+        .btn-vote.up.active { background: #e8f4fd; border-color: #74b9ff; color: #0984e3; }
+        .btn-vote.down.active { background: #ffeaea; border-color: #fab1a0; color: #d63031; }
+
+        .post-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1rem; }
+
+        .comment-card {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .comment-section-title { font-size: 15px; font-weight: 500; margin-bottom: 1rem; }
+
+        .comment-item { padding: 0.875rem 0; border-bottom: 1px solid #f1f3f5; }
+        .comment-item:last-child { border-bottom: none; }
+        .reply-item {
+            padding: 0.75rem 0 0.75rem 1.5rem;
+            border-bottom: 1px solid #f1f3f5;
+            background: #f8f9fa;
+            margin-left: 1rem;
+            border-left: 3px solid #dee2e6;
+            border-radius: 0 4px 4px 0;
+        }
+        .reply-item:last-child { border-bottom: none; }
+
+        .comment-author { font-size: 13px; font-weight: 500; }
+        .comment-date { font-size: 12px; color: #adb5bd; }
+        .comment-content { font-size: 14px; margin: 6px 0; color: #212529; white-space: pre-wrap; word-break: break-word; }
+        .comment-deleted { font-size: 14px; color: #adb5bd; font-style: italic; margin: 6px 0; }
+        .comment-actions { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+        .btn-like { font-size: 12px; color: #6c757d; background: none; border: none; cursor: pointer; padding: 2px 0; }
+        .btn-like:hover { color: #e84393; }
+        .btn-like.active { color: #e84393; }
+        .btn-text { font-size: 12px; color: #adb5bd; background: none; border: none; cursor: pointer; padding: 2px 0; }
+        .btn-text:hover { color: #212529; }
+
+        .reply-toggle { font-size: 12px; color: #6c757d; background: none; border: none; cursor: pointer; padding: 2px 0; }
+        .reply-toggle:hover { color: #212529; }
+
+        .comment-input-wrap {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .comment-textarea { width: 100%; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px 12px; font-size: 14px; resize: none; min-height: 80px; }
+        .comment-textarea:focus { outline: none; border-color: #adb5bd; }
+
+        .reply-input-box { margin-top: 8px; padding: 10px; background: #f8f9fa; border-radius: 8px; display: none; }
+        .reply-textarea { width: 100%; border: 1px solid #dee2e6; border-radius: 6px; padding: 8px 10px; font-size: 13px; resize: none; min-height: 60px; }
+        .reply-textarea:focus { outline: none; border-color: #adb5bd; }
+
+        .edit-input-box { margin-top: 8px; }
+        .edit-textarea { width: 100%; border: 1px solid #dee2e6; border-radius: 6px; padding: 8px 10px; font-size: 13px; resize: none; min-height: 60px; }
+        .edit-textarea:focus { outline: none; border-color: #adb5bd; }
+
+        .pagination-wrap { display: flex; justify-content: center; margin-top: 1rem; }
+    </style>
+    <script src="/js/nav.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+        <div class="container">
+            <a class="navbar-brand" href="/index.html">커뮤니티</a>
+            <div class="ms-auto d-flex align-items-center gap-2" id="nav-auth"></div>
+        </div>
+    </nav>
+
+    <div class="container py-4" style="max-width: 860px;">
+        <a id="back-link" href="/index.html" class="text-muted small text-decoration-none d-block mb-3">← 목록으로</a>
+
+        <div id="loading" class="text-center py-5 text-muted">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            불러오는 중...
+        </div>
+
+        <!-- 게시글 본문 -->
+        <div id="post-section" style="display:none;">
+            <div class="post-card">
+                <div class="post-title" id="post-title"></div>
+                <div class="post-meta">
+                    <span id="post-author"></span>
+                    <span id="post-date"></span>
+                    <span>조회 <span id="post-view"></span></span>
+                </div>
+                <div class="post-content" id="post-content"></div>
+
+                <!-- 추천/비추천 -->
+                <div class="vote-wrap">
+                    <button class="btn-vote up" onclick="vote('UP')">
+                        👍 추천 <span id="vote-up">0</span>
+                    </button>
+                    <button class="btn-vote down" onclick="vote('DOWN')">
+                        👎 비추천 <span id="vote-down">0</span>
+                    </button>
+                </div>
+
+                <!-- 게시글 수정/삭제 -->
+                <div class="post-actions" id="post-actions" style="display:none;">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="goEdit()">수정</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deletePost()">삭제</button>
+                </div>
+            </div>
+
+            <!-- 댓글 입력 -->
+            <div class="comment-input-wrap" id="comment-input-wrap">
+                <div id="login-prompt" style="display:none;">
+                    <p class="text-muted small mb-0">댓글을 작성하려면 <a href="/login.html">로그인</a>이 필요합니다.</p>
+                </div>
+                <div id="comment-form" style="display:none;">
+                    <textarea class="comment-textarea" id="comment-content" placeholder="댓글을 입력하세요 (최대 500자)"></textarea>
+                    <div class="d-flex justify-content-end mt-2">
+                        <button class="btn btn-dark btn-sm" onclick="submitComment()">댓글 등록</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 댓글 목록 -->
+            <div class="comment-card">
+                <div class="comment-section-title">댓글 <span id="comment-count" class="text-muted fw-normal"></span></div>
+                <div id="comment-list"></div>
+                <div class="empty-state text-center text-muted py-3 small" id="comment-empty" style="display:none;">첫 번째 댓글을 남겨보세요.</div>
+                <div class="pagination-wrap" id="comment-pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const boardId = params.get('boardId');
+        const postId = params.get('postId');
+        let commentPage = 0;
+
+        if (!boardId || !postId) window.location.replace('/index.html');
+
+        document.getElementById('back-link').href = `/board.html?boardId=${boardId}`;
+
+        function requireLogin() {
+            if (!getToken()) { window.location.href = '/login.html'; return false; }
+            return true;
+        }
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        function goEdit() {
+            window.location.href = `/post-edit.html?boardId=${boardId}&postId=${postId}`;
+        }
+
+        async function loadPost() {
+            try {
+                const res = await fetch(`${API_BASE}/api/boards/${boardId}/posts/${postId}`, {
+                    headers: authHeaders()
+                });
+                const json = await res.json();
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('post-section').style.display = 'block';
+
+                if (!res.ok) { alert('게시글을 불러올 수 없습니다.'); return; }
+
+                const post = json.data;
+                document.title = `${post.title} - 커뮤니티`;
+                document.getElementById('post-title').textContent = post.title;
+                document.getElementById('post-author').textContent = post.memberNickname;
+                document.getElementById('post-date').textContent = formatDate(post.createdAt);
+                document.getElementById('post-view').textContent = post.viewCount;
+                document.getElementById('post-content').textContent = post.content;
+                document.getElementById('vote-up').textContent = post.recommendationCount;
+                document.getElementById('vote-down').textContent = post.disrecommendationCount;
+
+                // 로그인 상태면 게시글 수정/삭제 버튼 노출 (작성자 체크는 추후)
+                if (getToken()) {
+                    document.getElementById('post-actions').style.display = 'flex';
+                    document.getElementById('comment-form').style.display = 'block';
+                } else {
+                    document.getElementById('login-prompt').style.display = 'block';
+                }
+
+            } catch (e) {
+                document.getElementById('loading').style.display = 'none';
+                alert('서버 연결에 실패했습니다.');
+            }
+        }
+
+        async function vote(voteType) {
+            if (!requireLogin()) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/boards/${boardId}/posts/${postId}/vote`, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ voteType })
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    loadPost();
+                } else {
+                    alert(json.message || '추천에 실패했습니다.');
+                }
+            } catch (e) {
+                alert('서버 연결에 실패했습니다.');
+            }
+        }
+
+        async function deletePost() {
+            if (!requireLogin()) return;
+            if (!confirm('게시글을 삭제하시겠습니까?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/boards/${boardId}/posts/${postId}`, {
+                    method: 'DELETE',
+                    headers: authHeaders()
+                });
+                if (res.ok) {
+                    window.location.replace(`/board.html?boardId=${boardId}`);
+                } else {
+                    const json = await res.json();
+                    alert(json.message || '삭제에 실패했습니다.');
+                }
+            } catch (e) {
+                alert('서버 연결에 실패했습니다.');
+            }
+        }
+
+        async function loadComments(page = 0) {
+            try {
+                const res = await fetch(`${API_BASE}/api/boards/${boardId}/posts/${postId}/comments?page=${page}&size=20&sort=id,asc`, {
+                    headers: authHeaders()
+                });
+                const json = await res.json();
+                if (!res.ok) return;
+
+                const { content, totalPages, totalElements, pageNumber } = json.data;
+                commentPage = pageNumber;
+
+                document.getElementById('comment-count').textContent = `(${totalElements})`;
+
+                const list = document.getElementById('comment-list');
+                const empty = document.getElementById('comment-empty');
+
+                if (!content || content.length === 0) {
+                    list.innerHTML = '';
+                    empty.style.display = 'block';
+                    document.getElementById('comment-pagination').innerHTML = '';
+                    return;
+                }
+
+                empty.style.display = 'none';
+
+                // 부모 댓글과 대댓글 분리
+                const parents = content.filter(c => !c.parentId);
+                const replies = content.filter(c => c.parentId);
+
+                list.innerHTML = parents.map(comment => {
+                    const commentReplies = replies.filter(r => r.parentId === comment.id);
+                    return renderComment(comment) + commentReplies.map(r => renderReply(r)).join('');
+                }).join('');
+
+                renderCommentPagination(totalPages, pageNumber);
+
+            } catch (e) {}
+        }
+
+        function renderComment(comment) {
+            const isDeleted = !comment.nickname;
+            return `
+            <div class="comment-item" id="comment-${comment.id}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="comment-author">${isDeleted ? '(삭제됨)' : escapeHtml(comment.nickname)}</span>
+                    <span class="comment-date">${formatDate(comment.createdAt)}</span>
+                </div>
+                ${isDeleted
+                    ? `<p class="comment-deleted">${escapeHtml(comment.content)}</p>`
+                    : `<p class="comment-content" id="comment-text-${comment.id}">${escapeHtml(comment.content)}</p>`
+                }
+                ${isDeleted ? '' : `
+                <div class="comment-actions">
+                    <button class="btn-like" onclick="likeComment(${comment.id})">♥ ${comment.commentLikeCount}</button>
+                    ${getToken() ? `
+                        <button class="btn-text" onclick="toggleReplyInput(${comment.id})">답글</button>
+                        <button class="btn-text" onclick="toggleEditInput(${comment.id}, '${escapeHtml(comment.content).replace(/'/g, "\\'")}')">수정</button>
+                        <button class="btn-text" onclick="deleteComment(${comment.id})">삭제</button>
+                    ` : ''}
+                </div>
+                <div class="reply-input-box" id="reply-box-${comment.id}">
+                    <textarea class="reply-textarea" id="reply-content-${comment.id}" placeholder="답글을 입력하세요"></textarea>
+                    <div class="d-flex justify-content-end gap-2 mt-1">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="toggleReplyInput(${comment.id})">취소</button>
+                        <button class="btn btn-sm btn-dark" onclick="submitReply(${comment.id})">등록</button>
+                    </div>
+                </div>
+                <div class="edit-input-box" id="edit-box-${comment.id}" style="display:none;">
+                    <textarea class="edit-textarea" id="edit-content-${comment.id}"></textarea>
+                    <div class="d-flex justify-content-end gap-2 mt-1">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="toggleEditInput(${comment.id})">취소</button>
+                        <button class="btn btn-sm btn-dark" onclick="submitEdit(${comment.id})">수정</button>
+                    </div>
+                </div>
+                `}
+            </div>`;
+        }
+
+        function renderReply(reply) {
+            return `
+            <div class="reply-item" id="comment-${reply.id}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="comment-author">↳ ${reply.nickname ? escapeHtml(reply.nickname) : '(삭제됨)'}</span>
+                    <span class="comment-date">${formatDate(reply.createdAt)}</span>
+                </div>
+                <p class="comment-content" id="comment-text-${reply.id}">${escapeHtml(reply.content)}</p>
+                <div class="comment-actions">
+                    <button class="btn-like" onclick="likeComment(${reply.id})">♥ ${reply.commentLikeCount}</button>
+                    ${getToken() ? `
+                        <button class="btn-text" onclick="toggleEditInput(${reply.id}, '${escapeHtml(reply.content).replace(/'/g, "\\'")}')">수정</button>
+                        <button class="btn-text" onclick="deleteComment(${reply.id})">삭제</button>
+                    ` : ''}
+                </div>
+                <div class="edit-input-box" id="edit-box-${reply.id}" style="display:none;">
+                    <textarea class="edit-textarea" id="edit-content-${reply.id}"></textarea>
+                    <div class="d-flex justify-content-end gap-2 mt-1">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="toggleEditInput(${reply.id})">취소</button>
+                        <button class="btn btn-sm btn-dark" onclick="submitEdit(${reply.id})">수정</button>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function toggleReplyInput(commentId) {
+            const box = document.getElementById(`reply-box-${commentId}`);
+            const isOpen = box.style.display === 'block';
+            box.style.display = isOpen ? 'none' : 'block';
+            if (!isOpen) document.getElementById(`reply-content-${commentId}`).focus();
+        }
+
+        function toggleEditInput(commentId, content) {
+            const box = document.getElementById(`edit-box-${commentId}`);
+            const isOpen = box.style.display === 'block';
+            box.style.display = isOpen ? 'none' : 'block';
+            if (!isOpen && content !== undefined) {
+                document.getElementById(`edit-content-${commentId}`).value = content;
+                document.getElementById(`edit-content-${commentId}`).focus();
+            }
+        }
+
+        async function submitComment() {
+            if (!requireLogin()) return;
+            const content = document.getElementById('comment-content').value.trim();
+            if (!content) { alert('댓글 내용을 입력해주세요.'); return; }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/boards/${boardId}/posts/${postId}/comments`, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ content })
+                });
+                if (res.ok) {
+                    document.getElementById('comment-content').value = '';
+                    loadComments(0);
+                } else {
+                    const json = await res.json();
+                    alert(json.message || '댓글 등록에 실패했습니다.');
+                }
+            } catch (e) { alert('서버 연결에 실패했습니다.'); }
+        }
+
+        async function submitReply(parentCommentId) {
+            if (!requireLogin()) return;
+            const content = document.getElementById(`reply-content-${parentCommentId}`).value.trim();
+            if (!content) { alert('답글 내용을 입력해주세요.'); return; }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/boards/${boardId}/posts/${postId}/comments/${parentCommentId}/replies`, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ content })
+                });
+                if (res.ok) {
+                    toggleReplyInput(parentCommentId);
+                    loadComments(commentPage);
+                } else {
+                    const json = await res.json();
+                    alert(json.message || '답글 등록에 실패했습니다.');
+                }
+            } catch (e) { alert('서버 연결에 실패했습니다.'); }
+        }
+
+        async function submitEdit(commentId) {
+            if (!requireLogin()) return;
+            const content = document.getElementById(`edit-content-${commentId}`).value.trim();
+            if (!content) { alert('내용을 입력해주세요.'); return; }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/boards/${boardId}/posts/${postId}/comments/${commentId}`, {
+                    method: 'PATCH',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ content })
+                });
+                if (res.ok) {
+                    loadComments(commentPage);
+                } else {
+                    const json = await res.json();
+                    alert(json.message || '수정에 실패했습니다.');
+                }
+            } catch (e) { alert('서버 연결에 실패했습니다.'); }
+        }
+
+        async function deleteComment(commentId) {
+            if (!requireLogin()) return;
+            if (!confirm('댓글을 삭제하시겠습니까?')) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/boards/${boardId}/posts/${postId}/comments/${commentId}`, {
+                    method: 'DELETE',
+                    headers: authHeaders()
+                });
+                if (res.ok) {
+                    loadComments(commentPage);
+                } else {
+                    const json = await res.json();
+                    alert(json.message || '삭제에 실패했습니다.');
+                }
+            } catch (e) { alert('서버 연결에 실패했습니다.'); }
+        }
+
+        async function likeComment(commentId) {
+            if (!requireLogin()) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/boards/${boardId}/posts/${postId}/comments/${commentId}/like`, {
+                    method: 'POST',
+                    headers: authHeaders()
+                });
+                if (res.ok) {
+                    loadComments(commentPage);
+                } else {
+                    const json = await res.json();
+                    alert(json.message || '좋아요 처리에 실패했습니다.');
+                }
+            } catch (e) { alert('서버 연결에 실패했습니다.'); }
+        }
+
+        function renderCommentPagination(totalPages, currentPage) {
+            const wrap = document.getElementById('comment-pagination');
+            if (totalPages <= 1) { wrap.innerHTML = ''; return; }
+
+            const maxBtn = 5;
+            let start = Math.max(0, currentPage - Math.floor(maxBtn / 2));
+            let end = Math.min(totalPages, start + maxBtn);
+            if (end - start < maxBtn) start = Math.max(0, end - maxBtn);
+
+            let html = '<nav><ul class="pagination pagination-sm">';
+            html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadComments(${currentPage - 1}); return false;">‹</a></li>`;
+            for (let i = start; i < end; i++) {
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="loadComments(${i}); return false;">${i + 1}</a></li>`;
+            }
+            html += `<li class="page-item ${currentPage === totalPages - 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadComments(${currentPage + 1}); return false;">›</a></li>`;
+            html += '</ul></nav>';
+            wrap.innerHTML = html;
+        }
+        loadPost();
+        loadComments();
+    </script>
+</body>
+</html>
