@@ -9,20 +9,15 @@ import com.kangyoon.community.domain.post.dto.PostResponse;
 import com.kangyoon.community.domain.post.dto.PostUpdateRequest;
 import com.kangyoon.community.domain.post.entity.Post;
 import com.kangyoon.community.domain.post.service.PostService;
-import com.kangyoon.community.global.exception.CustomException;
-import com.kangyoon.community.global.exception.ErrorCode;
 import com.kangyoon.community.global.exception.GlobalExceptionHandler;
-import com.kangyoon.community.global.security.CustomUserDetails;
-import com.kangyoon.community.global.security.CustomUserDetailsService;
-import com.kangyoon.community.global.security.JwtProvider;
-import com.kangyoon.community.global.security.SecurityConfig;
+import com.kangyoon.community.global.security.*;
+import com.kangyoon.community.infrastructure.s3.S3Service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -36,18 +31,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.List;
 
 @WebMvcTest(PostController.class)
-@Import({GlobalExceptionHandler.class, SecurityConfig.class})
+@Import({GlobalExceptionHandler.class, SecurityConfig.class, TestSecurityConfig.class}) // 필요한 의존성을 TestSecurityConfig호 묶음
 public class PostControllerTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
 
     @MockitoBean private PostService postService;
-    @MockitoBean private JwtProvider jwtProvider;
-    @MockitoBean private CustomUserDetailsService customUserDetailsService;
+    @MockitoBean S3Service s3Service;   // S3 서비스 의존성 빈 추가
 
     private Member member;
     private Board board;

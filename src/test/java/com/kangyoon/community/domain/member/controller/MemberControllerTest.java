@@ -8,8 +8,8 @@ import com.kangyoon.community.domain.member.service.MemberService;
 import com.kangyoon.community.global.exception.CustomException;
 import com.kangyoon.community.global.exception.ErrorCode;
 import com.kangyoon.community.global.exception.GlobalExceptionHandler;
-import com.kangyoon.community.global.security.CustomUserDetailsService;
-import com.kangyoon.community.global.security.JwtProvider;
+import com.kangyoon.community.global.security.SecurityConfig;
+import com.kangyoon.community.global.security.TestSecurityConfig;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.http.MediaType;
 
 @WebMvcTest(MemberController.class)
-@Import(GlobalExceptionHandler.class)
+@Import({GlobalExceptionHandler.class, SecurityConfig.class, TestSecurityConfig.class}) // 필요한 의존성을 TestSecurityConfig호 묶음
 @AutoConfigureMockMvc(addFilters = false)
 public class MemberControllerTest {
 
@@ -35,8 +35,6 @@ public class MemberControllerTest {
     @Autowired private ObjectMapper objectMapper;
 
     @MockitoBean private MemberService memberService;
-    @MockitoBean private JwtProvider jwtProvider;
-    @MockitoBean private CustomUserDetailsService customUserDetailsService;
 
     @Test
     void 회원가입_성공() throws Exception{
