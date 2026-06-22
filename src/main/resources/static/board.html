@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시글 목록 - 커뮤니티</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar-brand { font-weight: 500; }
+        .post-row {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 0.875rem 1.25rem;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: border-color 0.15s;
+            text-decoration: none;
+            display: block;
+            color: inherit;
+        }
+        .post-row:hover { border-color: #adb5bd; color: inherit; }
+        .post-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .post-meta { font-size: 12px; color: #6c757d; display: flex; gap: 12px; }
+        .badge-count { font-size: 11px; color: #6c757d; }
+        .pagination-wrap { display: flex; justify-content: center; margin-top: 1.5rem; }
+        .empty-state { text-align: center; color: #adb5bd; padding: 3rem 0; font-size: 14px; }
+        .search-bar { background: #fff; border: 1px solid #e9ecef; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+    </style>
+    <script src="/js/nav.js"></script>
+</head>
+<body>
+    <!-- 네비게이션 -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+        <div class="container">
+            <a class="navbar-brand" href="/index.html">커뮤니티</a>
+            <div class="ms-auto d-flex align-items-center gap-2" id="nav-auth"></div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <!-- 게시판 제목 -->
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+                <a href="/index.html" class="text-muted small text-decoration-none">← 게시판 목록</a>
+                <h2 class="fs-5 fw-500 mb-0 mt-1" id="board-name">불러오는 중...</h2>
+            </div>
+            <button class="btn btn-dark btn-sm" id="write-btn" style="display:none;" onclick="goWrite()">글쓰기</button>
+        </div>
+
+        <!-- 검색 -->
+        <div class="search-bar d-flex gap-2">
+            <select class="form-select form-select-sm" id="search-type" style="width:120px;">
+                <option value="title">제목</option>
+                <option value="title_content">제목+내용</option>
+            </select>
+            <input type="text" class="form-control form-control-sm" id="search-keyword" placeholder="검색어를 입력하세요">
+            <button class="btn btn-outline-secondary btn-sm" onclick="search()">검색</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="resetSearch()">초기화</button>
+        </div>
+
+        <!-- 로딩 -->
+        <div id="loading" class="text-center py-5 text-muted">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            불러오는 중...
+        </div>
+
+        <!-- 게시글 목록 -->
+        <div id="post-container" style="display:none;">
+            <div id="post-list"></div>
+            <div class="empty-state" id="empty-state" style="display:none;">게시글이 없습니다.</div>
+            <div class="pagination-wrap" id="pagination"></div>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const boardId = params.get('boardId');
+        let currentPage = 0;
+        let currentKeyword = '';
+        let currentSearchType = '';
+
+        if (!boardId) {
+            window.location.replace('/index.html');
+        }
+
+        function goWrite() {
+            window.location.href = `/post-write.html?boardId=${boardId}`;
+        }
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        async function loadBoardInfo() {
+            try {
+                const res = await fetch(`${API_BASE}/api/boards/${boardId}`);
+                const json = await res.json();
+                if (res.ok) {
+                    document.getElementById('board-name').textContent = json.data.name;
+                    document.title = `${json.data.name} - 커뮤니티`;
+                }
+            } catch (e) {}
+        }
+
+        async function loadPosts(page = 0) {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('post-container').style.display = 'none';
+
+            const queryParams = new URLSearchParams({
+                page,
+                size: 20,
+                sort: 'createdAt,desc'
+            });
+
+            if (currentKeyword) {
+                queryParams.set('keyword', currentKeyword);
+                queryParams.set('searchType', currentSearchType);
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/boards/${boardId}/posts?${queryParams}`, {
+                    headers: authHeaders()
+                });
+                const json = await res.json();
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('post-container').style.display = 'block';
+
+                if (!res.ok) {
+                    document.getElementById('empty-state').style.display = 'block';
+                    return;
+                }
+
+                const { content, totalPages, pageNumber } = json.data;
+                currentPage = pageNumber;
+
+                const list = document.getElementById('post-list');
+                const empty = document.getElementById('empty-state');
+
+                if (!content || content.length === 0) {
+                    list.innerHTML = '';
+                    empty.style.display = 'block';
+                    document.getElementById('pagination').innerHTML = '';
+                    return;
+                }
+
+                empty.style.display = 'none';
+                list.innerHTML = content.map(post => `
+                    <a href="/post.html?boardId=${boardId}&postId=${post.postId}" class="post-row">
+                        <div class="post-title">${escapeHtml(post.title)}</div>
+                        <div class="post-meta">
+                            <span>${escapeHtml(post.memberNickname)}</span>
+                            <span>${formatDate(post.createdAt)}</span>
+                            <span>조회 ${post.viewCount}</span>
+                            <span>추천 ${post.recommendationCount}</span>
+                        </div>
+                    </a>
+                `).join('');
+
+                renderPagination(totalPages, currentPage);
+
+            } catch (e) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('post-container').style.display = 'block';
+                document.getElementById('empty-state').style.display = 'block';
+            }
+        }
+
+        function renderPagination(totalPages, currentPage) {
+            const wrap = document.getElementById('pagination');
+            if (totalPages <= 1) { wrap.innerHTML = ''; return; }
+
+            const maxBtn = 5;
+            let start = Math.max(0, currentPage - Math.floor(maxBtn / 2));
+            let end = Math.min(totalPages, start + maxBtn);
+            if (end - start < maxBtn) start = Math.max(0, end - maxBtn);
+
+            let html = '<nav><ul class="pagination pagination-sm">';
+            html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadPosts(${currentPage - 1}); return false;">‹</a></li>`;
+
+            for (let i = start; i < end; i++) {
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="loadPosts(${i}); return false;">${i + 1}</a></li>`;
+            }
+
+            html += `<li class="page-item ${currentPage === totalPages - 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadPosts(${currentPage + 1}); return false;">›</a></li>`;
+            html += '</ul></nav>';
+            wrap.innerHTML = html;
+        }
+
+        function search() {
+            currentKeyword = document.getElementById('search-keyword').value.trim();
+            currentSearchType = document.getElementById('search-type').value;
+            loadPosts(0);
+        }
+
+        function resetSearch() {
+            currentKeyword = '';
+            currentSearchType = '';
+            document.getElementById('search-keyword').value = '';
+            loadPosts(0);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        // Enter 키 검색
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('search-keyword').addEventListener('keydown', e => {
+                if (e.key === 'Enter') search();
+            });
+        });
+        loadBoardInfo();
+        loadPosts();
+    </script>
+</body>
+</html>
