@@ -11,10 +11,7 @@ import com.kangyoon.community.domain.comment.service.CommentService;
 import com.kangyoon.community.domain.member.entity.Member;
 import com.kangyoon.community.domain.post.entity.Post;
 import com.kangyoon.community.global.exception.GlobalExceptionHandler;
-import com.kangyoon.community.global.security.CustomUserDetails;
-import com.kangyoon.community.global.security.CustomUserDetailsService;
-import com.kangyoon.community.global.security.JwtProvider;
-import com.kangyoon.community.global.security.SecurityConfig;
+import com.kangyoon.community.global.security.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,15 +36,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.List;
 
 @WebMvcTest(CommentController.class)
-@Import({GlobalExceptionHandler.class, SecurityConfig.class})
+@Import({GlobalExceptionHandler.class, SecurityConfig.class, TestSecurityConfig.class}) // 필요한 의존성을 TestSecurityConfig호 묶음
 public class CommentControllerTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
 
     @MockitoBean private CommentService commentService;
-    @MockitoBean private JwtProvider jwtProvider;
-    @MockitoBean private CustomUserDetailsService customUserDetailsService;
 
     private Member member;
     private Board board;
