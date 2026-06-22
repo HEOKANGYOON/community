@@ -1,6 +1,5 @@
 package com.kangyoon.community.domain.notification.service;
 
-import ch.qos.logback.core.spi.ErrorCodes;
 import com.kangyoon.community.domain.notification.dto.NotificationResponse;
 import com.kangyoon.community.domain.notification.entity.Notification;
 import com.kangyoon.community.domain.notification.repository.NotificationRepository;
@@ -9,6 +8,7 @@ import com.kangyoon.community.global.exception.CustomException;
 import com.kangyoon.community.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -16,6 +16,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class NotificationService {
 
     private final SseEmitterRepository sseEmitterRepository;
