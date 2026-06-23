@@ -89,6 +89,11 @@
             window.location.href = `/post-write.html?boardId=${boardId}`;
         }
 
+        // 로그인 상태면 글쓰기 버튼 노출
+        if (getToken()) {
+            document.getElementById('write-btn').style.display = 'inline-block';
+        }
+
         function formatDate(dateStr) {
             const d = new Date(dateStr);
             return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;

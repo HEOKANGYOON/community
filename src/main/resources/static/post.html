@@ -18,7 +18,7 @@
         }
         .post-title { font-size: 20px; font-weight: 500; margin-bottom: 0.5rem; }
         .post-meta { font-size: 13px; color: #6c757d; display: flex; gap: 16px; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #f1f3f5; }
-        .post-content { font-size: 15px; line-height: 1.8; min-height: 100px; white-space: pre-wrap; word-break: break-word; }
+        .post-content { font-size: 15px; line-height: 1.8; min-height: 100px; word-break: break-word; } .post-content img { max-width: 100%; border-radius: 8px; }
 
         .vote-wrap { display: flex; justify-content: center; gap: 12px; padding: 1.5rem 0; border-top: 1px solid #f1f3f5; margin-top: 1.5rem; }
         .btn-vote { display: flex; align-items: center; gap: 6px; padding: 8px 24px; border-radius: 20px; font-size: 14px; font-weight: 500; border: 1px solid #dee2e6; background: #fff; cursor: pointer; transition: all 0.15s; }
@@ -200,7 +200,7 @@
                 document.getElementById('post-author').textContent = post.memberNickname;
                 document.getElementById('post-date').textContent = formatDate(post.createdAt);
                 document.getElementById('post-view').textContent = post.viewCount;
-                document.getElementById('post-content').textContent = post.content;
+                document.getElementById('post-content').innerHTML = post.content;
                 document.getElementById('vote-up').textContent = post.recommendationCount;
                 document.getElementById('vote-down').textContent = post.disrecommendationCount;
 
