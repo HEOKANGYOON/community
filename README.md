@@ -56,7 +56,7 @@ Frontend 참고사항: 프론트엔드는 Swagger 명세 기반으로 AI 도구�
 
 <img src="docs/images/community_아키텍쳐.jpg" width="800"/>
 
-- **Nginx Proxy Manager**: HTTPS 처리 및 리버스 프록시:q
+- **Nginx Proxy Manager**: HTTPS 처리 및 리버스 프록시
 - **Docker**: MySQL, Redis 컨테이너로 운영 환경 격리
 
 ---
