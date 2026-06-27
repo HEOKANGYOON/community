@@ -278,58 +278,90 @@ src/main/java/com/kangyoon/community
 
 이전 프로젝트에서 동일 데이터에 대한 동시 수정 시 Lost Update 문제를 경험한 적이 있었고, 이를 해결하기 위해 Redis의 원자 연산(`INCR`, `DECR`)을 활용한 카운팅 구조를 도입했습니다.
 
-하지만 추천/비추천 기능을 구현하면서 새로운 문제가 발생했습니다.
+하지만 구현 과정에서 세 가지 문제를 추가로 마주쳤습니다.
 
-추천 수를 Redis만으로 관리할 경우 Redis 장애 시 데이터 유실 가능성이 존재했고, 추천 여부 자체를 판단할 기준 데이터도 사라질 수 있었습니다.
+---
 
-#### 고민
+#### 문제 1: Redis vs DB 역할 분리
 
-초기에는 Redis를 원본 데이터로 사용하는 방안도 고려했습니다.
+초기에는 Redis를 원본 데이터로 사용하는 방안을 고려했습니다.
 
 ```text
-Redis INCR
-↓
-DB 저장
+Redis INCR → DB 저장
 ```
 
-하지만 DB 저장이 실패하면 Redis 카운트만 증가한 상태가 되어 실제 추천 데이터와 불일치가 발생할 수 있었습니다.
+하지만 DB 저장이 실패하면 Redis 카운트만 증가한 상태가 되어 불일치가 발생할 수 있었습니다. 반대로 추천 여부 판단을 Redis에만 의존하면 Redis 장애 시 추천 이력 자체를 복구하기 어려웠습니다.
 
-반대로 추천 여부를 판단하기 위해 Redis에만 의존하면 Redis 장애 발생 시 추천 이력 자체를 복구하기 어려웠습니다.
+**해결**: 각 저장소의 역할을 분리했습니다.
 
-#### 해결
+| 저장소 | 역할 |
+|---|---|
+| PostVote | 추천/비추천 원본 데이터 (Source of Truth) |
+| Redis | 실시간 카운트 조회 |
+| Post.recommendCount | 정렬 및 검색 최적화 |
 
-각 저장소의 역할을 분리했습니다.
+추천 요청 시 PostVote를 먼저 저장하여 정합성을 확보하고, 이후 Redis 카운트를 반영하도록 구성했습니다.
 
-| 저장소                 | 역할                              |
-| ------------------- | ------------------------------- |
-| PostVote            | 추천/비추천 원본 데이터 (Source of Truth) |
-| Redis               | 실시간 카운트 조회                      |
-| Post.recommendCount | 정렬 및 검색 최적화                     |
+---
 
-추천 요청 시에는 먼저 PostVote를 저장하여 정합성을 확보하고, 이후 Redis 카운트를 반영하도록 구성했습니다.
+#### 문제 2: Redis INCR 호출 순서 문제
 
-#### 결과
+DB 커밋은 메서드 종료 시점에 일어나지만 Redis INCR은 호출 즉시 반영됩니다. 따라서 아무 처리 없이 Redis INCR을 먼저 호출하면:
 
-* 추천 여부에 대한 정합성을 보장할 수 있게 되었습니다.
-* Redis를 활용하여 실시간 조회 성능을 확보할 수 있었습니다.
-* 추천 수 정렬 시 COUNT 집계를 반복하지 않고 Post.recommendCount 컬럼을 활용할 수 있게 되었습니다.
+```text
+Redis INCR 성공 → DB 커밋 실패 → Redis 카운트만 증가한 상태로 불일치 발생
+```
+
+**고민한 선택지**
+
+- 선택지 1: `@TransactionalEventListener(AFTER_COMMIT)`으로 커밋 이후 Redis 반영
+    - DB 정합성은 보장되나 실패 시 어느 시점에서 실패했는지 추적이 어려움
+- 선택지 2: `flush()` 명시 후 Redis INCR 호출 (채택)
+    - `flush()`로 DB insert를 먼저 확정한 뒤 Redis INCR 호출
+    - Redis INCR 실패 시 예외가 전파되어 트랜잭션 롤백으로 DB도 취소됨
+    - 실패 지점이 명확하고 오류 추적이 용이
+    - 향후 `AFTER_COMMIT` 이벤트 리스너로 리팩터링 예정
+
+---
+
+#### 문제 3: 목록 조회 시 카운트 N+1 문제
+
+게시글 목록 조회 시 게시글마다 개별 Redis GET을 호출하면 페이지당 최대 60개(추천수 + 비추천수 + 조회수)의 Redis 호출이 발생합니다. Redis 장애 시 캐시 미스로 처리되면 동일한 수의 DB 쿼리가 발생합니다.
+
+**해결**: `MGET`으로 목록 전체를 한 번에 조회하고, 캐시 미스된 ID만 DB에서 일괄 조회 후 Redis에 적재하도록 구성했습니다.
+
+```text
+MGET(postIds) → 캐시 미스 ID 추출 → DB 일괄 조회 → Redis 적재 → 결과 반환
+```
+
+---
+
+#### 현재 한계
+
+Redis 장애 시 `redisTemplate` 호출 자체에서 예외가 발생하며 별도 fallback 처리가 없어 서비스 전체가 중단됩니다. 부하테스트 이후 아래 방향으로 개선할 예정입니다.
+
+- Redis 장애 감지 시 DB 스냅샷(`Post.recommendCount`, `Post.viewCount`) 반환
+- Redis 재시작 후 워밍업 배치로 캐시 선적재 후 트래픽 오픈
+
+---
 
 #### 배운 점
 
-Redis는 빠른 조회를 위한 캐시 또는 Projection 계층으로 활용하고, 정합성이 중요한 데이터는 영속 저장소를 기준으로 관리해야 한다는 점을 배웠습니다.
+Redis는 빠른 조회를 위한 캐시로 활용하고, 정합성이 중요한 데이터는 영속 저장소(DB)를 기준으로 관리해야 한다는 점을 배웠습니다.
 
-또한 단순히 Redis를 도입하는 것보다 각 저장소의 책임을 명확하게 분리하는 것이 중요하다는 점을 경험했습니다.
+또한 Redis를 도입하면 장애 대응, 캐시 미스 처리, 호출 순서 등 추가로 관리해야 할 복잡도가 늘어난다는 점을 직접 경험했습니다.
 
+---
 
 ### 2. AFTER_COMMIT 이벤트에서 알림 저장이 수행되지 않는 문제
 
 #### 문제
 
-댓글 작성 후 알림을 생성하기 위해 @TransactionalEventListener(AFTER_COMMIT)를 사용했지만, 이벤트 리스너 내부에서 수행한 notificationRepository.save()가 실제 INSERT 쿼리로 반영되지 않는 문제가 발생했습니다.
+댓글 작성 후 알림을 생성하기 위해 `@TransactionalEventListener(AFTER_COMMIT)`를 사용했지만, 이벤트 리스너 내부에서 수행한 `notificationRepository.save()`가 실제 INSERT 쿼리로 반영되지 않는 문제가 발생했습니다.
 
 #### 원인
 
-AFTER_COMMIT 시점에는 기존 트랜잭션이 이미 종료된 상태입니다.
+`AFTER_COMMIT` 시점에는 기존 트랜잭션이 이미 종료된 상태입니다.
 
 따라서 별도의 트랜잭션 없이 수행한 JPA 저장 작업은 flush되지 않았고, 결과적으로 데이터베이스에 반영되지 않았습니다.
 
@@ -337,7 +369,9 @@ AFTER_COMMIT 시점에는 기존 트랜잭션이 이미 종료된 상태입니�
 
 알림 저장 로직에 새로운 트랜잭션을 시작하도록 설정했습니다.
 
+```java
 @Transactional(propagation = Propagation.REQUIRES_NEW)
+```
 
 이를 통해 원본 비즈니스 트랜잭션과 독립적으로 알림 저장이 수행되도록 변경했습니다.
 
@@ -347,7 +381,9 @@ AFTER_COMMIT 시점에는 기존 트랜잭션이 이미 종료된 상태입니�
 
 #### 배운 점
 
-트랜잭션 이벤트는 단순한 비동기 호출이 아니라 트랜잭션 생명주기와 밀접하게 연결되어 있다는 점을 이해하게 되었고, AFTER_COMMIT 환경에서 별도 트랜잭션이 필요한 이유를 학습할 수 있었습니다.
+트랜잭션 이벤트는 단순한 비동기 호출이 아니라 트랜잭션 생명주기와 밀접하게 연결되어 있다는 점을 이해하게 되었고, `AFTER_COMMIT` 환경에서 별도 트랜잭션이 필요한 이유를 학습할 수 있었습니다.
+
+---
 
 ### 3. Spring Security 인증 실패 시 401 대신 403이 반환되는 문제
 
@@ -361,10 +397,12 @@ Spring Security는 기본 설정 상태에서 인증 실패와 인가 실패를 
 
 #### 해결
 
-커스텀 AuthenticationEntryPoint를 구현하여 인증되지 않은 요청에 대해 명시적으로 401 응답을 반환하도록 설정했습니다.
+커스텀 `AuthenticationEntryPoint`를 구현하여 인증되지 않은 요청에 대해 명시적으로 401 응답을 반환하도록 설정했습니다.
 
+```java
 .exceptionHandling(exception -> exception
-.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+    .authenticationEntryPoint(jwtAuthenticationEntryPoint))
+```
 
 #### 결과
 
