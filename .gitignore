@@ -44,3 +44,8 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+
+
+# .gitignore
+application.properties
+application-*.properties

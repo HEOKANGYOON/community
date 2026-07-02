@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - 커뮤니티</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .auth-card {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+        }
+        .nav-tabs .nav-link {
+            color: #6c757d;
+            border: none;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-tabs .nav-link.active {
+            color: #212529;
+            font-weight: 500;
+            border-bottom: 2px solid #212529;
+            background: none;
+        }
+        .nav-tabs {
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 1.5rem;
+        }
+        .btn-google {
+            width: 100%;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            color: #212529;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .btn-google:hover {
+            background: #f8f9fa;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 1.25rem 0;
+            color: #adb5bd;
+            font-size: 13px;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #dee2e6;
+        }
+        #error-message {
+            font-size: 13px;
+            color: #dc3545;
+            margin-bottom: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <div class="text-center mb-4">
+            <h1 class="fs-4 fw-500 mb-1">커뮤니티</h1>
+            <p class="text-muted small">다중 게시판형 커뮤니티 서비스</p>
+        </div>
+
+        <ul class="nav nav-tabs">
+            <li class="nav-item flex-fill text-center">
+                <a class="nav-link active" id="tab-login" href="#" onclick="switchTab('login'); return false;">로그인</a>
+            </li>
+            <li class="nav-item flex-fill text-center">
+                <a class="nav-link" id="tab-signup" href="#" onclick="switchTab('signup'); return false;">회원가입</a>
+            </li>
+        </ul>
+
+        <div id="error-message"></div>
+
+        <!-- 로그인 폼 -->
+        <div id="panel-login">
+            <div class="mb-3">
+                <label class="form-label small text-muted">이메일</label>
+                <input type="email" id="login-email" class="form-control" placeholder="example@email.com">
+            </div>
+            <div class="mb-3">
+                <label class="form-label small text-muted">비밀번호</label>
+                <input type="password" id="login-password" class="form-control" placeholder="비밀번호 입력">
+            </div>
+            <button class="btn btn-dark w-100" onclick="login()">로그인</button>
+            <div class="divider"><span>또는</span></div>
+            <button class="btn-google" onclick="googleLogin()">
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Google로 계속하기
+            </button>
+        </div>
+
+        <!-- 회원가입 폼 -->
+        <div id="panel-signup" style="display:none;">
+            <div class="mb-3">
+                <label class="form-label small text-muted">이메일</label>
+                <input type="email" id="signup-email" class="form-control" placeholder="example@email.com">
+            </div>
+            <div class="mb-3">
+                <label class="form-label small text-muted">비밀번호</label>
+                <input type="password" id="signup-password" class="form-control" placeholder="8자 이상">
+                <div class="form-text">8~80자</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small text-muted">닉네임</label>
+                <input type="text" id="signup-nickname" class="form-control" placeholder="닉네임 입력">
+                <div class="form-text">2~12자, 한글/영문/숫자만 가능</div>
+            </div>
+            <button class="btn btn-dark w-100" onclick="signup()">회원가입</button>
+            <div class="divider"><span>또는</span></div>
+            <button class="btn-google" onclick="googleLogin()">
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Google로 계속하기
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+
+        // 이미 로그인 상태면 메인으로
+        if (localStorage.getItem('accessToken')) {
+            window.location.replace('/index.html');
+        }
+
+        function switchTab(tab) {
+            document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+            document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+            document.getElementById('panel-login').style.display = tab === 'login' ? 'block' : 'none';
+            document.getElementById('panel-signup').style.display = tab === 'signup' ? 'block' : 'none';
+            hideError();
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error-message');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        async function login() {
+            hideError();
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            if (!email || !password) {
+                showError('이메일과 비밀번호를 입력해주세요.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
+                });
+                const json = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('accessToken', json.data.accessToken);
+                    window.location.replace('/index.html');
+                } else {
+                    showError(json.message || '로그인에 실패했습니다.');
+                }
+            } catch (e) {
+                showError('서버 연결에 실패했습니다.');
+            }
+        }
+
+        async function signup() {
+            hideError();
+            const email = document.getElementById('signup-email').value.trim();
+            const password = document.getElementById('signup-password').value;
+            const nickname = document.getElementById('signup-nickname').value.trim();
+
+            if (!email || !password || !nickname) {
+                showError('모든 항목을 입력해주세요.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, nickname })
+                });
+                const json = await res.json();
+
+                if (res.ok) {
+                    alert('회원가입이 완료되었습니다. 로그인해주세요.');
+                    switchTab('login');
+                } else {
+                    showError(json.message || '회원가입에 실패했습니다.');
+                }
+            } catch (e) {
+                showError('서버 연결에 실패했습니다.');
+            }
+        }
+
+        function googleLogin() {
+            window.location.href = '/oauth2/authorization/google';
+        }
+
+        // Enter 키 지원
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const activePanel = document.getElementById('panel-login').style.display !== 'none' ? 'login' : 'signup';
+                activePanel === 'login' ? login() : signup();
+            }
+        });
+    </script>
+</body>
+</html>
