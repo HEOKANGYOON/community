@@ -33,7 +33,9 @@ public class RedisService {
     private static final String POST_VIEWCOUNT_KEY = "post:viewcount:";
     private static final String COMMENT_LIKE_KEY = "comment:like:";
 
-
+    //캐시 미싱에 해당 하는 부분만 있고 redis 장애 시의 try-catch문 빠짐
+    //redis 장애 시 동시 다발적으로 count 쿼리 날리면 트래픽 급증함
+    //post테이블의 최신 스냅샷을 반환하도록 하고 redis에 적재는 안함 redis가 정상적으로 돌아 왔을때 캐시 미싱 된것 처리하도록
     public int getRecommendCount(Long postId) {
         String value = redisTemplate.opsForValue().get(POST_RECOMMEND_KEY + postId);
 
@@ -41,7 +43,7 @@ public class RedisService {
             return Integer.parseInt(value);
         }
 
-        int recommendCount = postVoteRepository.countByPostIdAndVoteType(postId, VoteType.UP);
+        int recommendCount = postVoteRepository.countByPostIdAndVoteType(postId, VoteType.UP);      //캐시 미스의 경우에만 DB에서 count
 
         redisTemplate.opsForValue().set(POST_RECOMMEND_KEY + postId, String.valueOf(recommendCount));
         return recommendCount;
@@ -98,6 +100,7 @@ public class RedisService {
     }
 
 
+    // Redis 장애 시 fallback이 없는 문제는 여기도 동일하게 적용
     public Map<Long, Integer> getViewCountList(List<Long> postIds) {
         List<String> keys = postIds.stream()
                 .map(id -> POST_VIEWCOUNT_KEY + id)
@@ -180,6 +183,7 @@ public class RedisService {
                 .map(id -> COMMENT_LIKE_KEY + id)
                 .toList();
 
+        //MGET keys로
         List<String> values = redisTemplate.opsForValue().multiGet(keys);
 
         Map<Long, Integer> result = new HashMap<>();

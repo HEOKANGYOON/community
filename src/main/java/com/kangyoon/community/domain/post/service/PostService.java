@@ -69,7 +69,7 @@ public class PostService {
         return PostResponse.from(post, viewCount, recommendCount, disrecommendCount);
     }
 
-    //검색 기능 구현할 때 합시다(15번 mySQL FULLTEXT 인덱스 설정)
+    //(FULLTEXT 인덱스타도록 리팩터링 예정)
 //    public void findByTitle(String title) {
 //        //검색 결과를 어떻게 가져올것인가
 //        return postRepository.findByDeletedAtIsNull()
@@ -149,17 +149,21 @@ public class PostService {
             postVoteRepository.save(postVote);
             //DB insert 성공 이후 redis.incr을 실행시키기 위한 명시적 flush 호출임
             // if (postVoteRepository.existsByMemberIdAndPostId(memberId, postId)) 이 조건문으로 중복검사는 미리 했음
-            //해당 flush는 동시요청 경쟁상태에서만 동작함 최종 방어선은 DB의 unique 제약
+            //해당 flush는 동시요청 경쟁상태에서만 검증함 최종 방어선은 DB의 unique 제약
             //@TransactionalEventListener(AFTER_COMMIT) 이 어노테이션으로 커밋이 성공적으로 완료되면 외부 시스템 호출하는 식으로 리팩터링할 에쩡
+
+            //0629 굳이 flush가 필요했을까? 경쟁 상황은 동일 유저가 동일 게시글에 추천/비추천을 동시에 요청하는 경우(매우 드물다)인데 그냥 락 걸었어도 괜찮은거 아니었을까
+            //굳이 필요없는 flush를 매 추천마다 해야함(DB 부하줌) 그리고
             postVoteRepository.flush();
         } catch (DataIntegrityViolationException e) {
             throw new CustomException(ErrorCode.DUPLICATE_VOTE);
         }
 
+        //redis incr 등은 EventListener로 after_commit으로 관심사를 분리하고 redis 장애 등은 로그로 남겨서 배치, 스케쥴러 할 때 반영하는 방향이면 되었을 거 같은데
         //redis는 인프라 쪽 redis를 사용하는 로직은 redisService에 공통적으로 처리
         if (voteType == VoteType.UP) {
             redisService.increaseRecommend(postId);
-        } else {
+        } else {    //명시적으로 DOWN으로 표현하는게 나았으려나 UP,DOWN 말고 recommend, disrecommend가 더 의미가 정확했을 듯;;
             redisService.increaseDisrecommend(postId);
         }
     }

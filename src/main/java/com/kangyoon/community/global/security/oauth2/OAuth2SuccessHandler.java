@@ -29,7 +29,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final ObjectMapper objectMapper;
 
     @Value("${oauth2.redirect-uri}")
-    private String redirectUri;    // "http://localhost:8080/oauth/callback.html"
+    // "http://localhost:8080/oauth/callback.html" 로컬용
+    private String redirectUri;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -50,6 +51,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
+                //TODO 배포파일 확인해봐바 secure설정 true 아닌거 같은데
                 .secure(false)  //배포시 true해야함 로컬은 http라서 쿠키 전달안됨
                 .path("/")
                 .maxAge(Duration.ofDays(14))

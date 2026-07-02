@@ -17,14 +17,14 @@ public class CommentLikeRepositoryImpl implements CommentLikeRepositoryCustom{
     @Override
     public Map<Long, Integer> countByCommentIds(List<Long> commentIds) {
         return queryFactory
-                .select(commentLike.id, commentLike.count())
+                .select(commentLike.comment.id, commentLike.count())
                 .from(commentLike)
-                .where(commentLike.id.in(commentIds))
-                .groupBy(commentLike.id)
+                .where(commentLike.comment.id.in(commentIds))
+                .groupBy(commentLike.comment.id)
                 .fetch()
                 .stream()
                 .collect(Collectors.toMap(
-                        tuple -> tuple.get(commentLike.id),
+                        tuple -> tuple.get(commentLike.comment.id),
                         tuple -> {
                             Long count = tuple.get(commentLike.count());
                             return count != null ? count.intValue() : 0;

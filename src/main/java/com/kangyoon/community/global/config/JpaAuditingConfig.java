@@ -10,11 +10,11 @@ import java.time.ZoneId;
 import java.util.Optional;
 
 @Configuration
-@EnableJpaAuditing
+@EnableJpaAuditing(dateTimeProviderRef = "auditingDateTimeProvider")
 public class JpaAuditingConfig {
 
     @Bean
     public DateTimeProvider auditingDateTimeProvider() {
-        return () -> Optional.of(LocalDateTime.now(ZoneId.of("Aisa/Seoul")));
+        return () -> Optional.of(LocalDateTime.now(ZoneId.of("Asia/Seoul")));   //Asia 로 수정
     }
 }
