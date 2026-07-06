@@ -23,6 +23,7 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
 
         List<Post> content = queryFactory
                 .selectFrom(QPost.post)
+                .join(QPost.post.member).fetchJoin()
                 .where(
                         QPost.post.board.id.eq(boardId),
                         QPost.post.deletedAt.isNull(),
