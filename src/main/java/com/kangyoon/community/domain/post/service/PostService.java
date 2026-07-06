@@ -22,8 +22,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,22 +39,37 @@ public class PostService {
     private final PostVoteRepository postVoteRepository;
     private final RedisService redisService;
 
+    private static final Set<Character> LIKE_FALLBACK_TRIGGER_CHARS =
+            Set.of('+', '-', '>', '<', '(', ')', '~', '*', '"', '@');
+
     public Page<PostSummaryResponse> getAllPost(Long boardId, String keyword, String searchType, Pageable pageable) {
 
-        Page<Post> posts = postRepository.findPostsByBoard(boardId, keyword, searchType, pageable);
+        String assembled = null;
 
-        List<Long> postIds = posts.getContent().stream()
-                .map(Post::getId)
-                .toList();
+        if (keyword != null && !keyword.isBlank()) {
+            String trimKeyword = keyword.trim();
 
-        Map<Long, Integer> viewCountMap = redisService.getViewCountList(postIds);
-        Map<Long, Integer> recommendMap = redisService.getRecommendList(postIds);
+            if (requiresLikeFallback(trimKeyword)) {    //LIKE_FALLBACK_TRIGGER_CHARS에 있는 특수문자를 포함한 경우 LIKE검색으로
+                Page<Post> posts = postRepository.findPostsByBoardLike(boardId, trimKeyword, searchType, pageable);
+                return toSummaryResponses(posts);
+            }
 
-        return posts.map(post -> PostSummaryResponse.from(
-                post,
-                viewCountMap.getOrDefault(post.getId(), post.getViewCount()),
-                recommendMap.getOrDefault(post.getId(), post.getRecommendationCount())
-        ));
+            List<String> tokens = Arrays.stream(trimKeyword.split("\\s+"))  // 공백이 연속되는 경우까지 막아야함 \s+
+                    .filter(token -> token.length() >= 2)
+                    .toList();
+
+            if (tokens.isEmpty()) { //입력은 했지만 유효한 토큰이 없으면
+                return Page.empty(pageable);    //DB 호출 없이 바로 리턴함(조회 결과 없이 페이징 정보만)
+            }
+
+            assembled = tokens.stream()
+                    .map(token -> "+" + token)
+                    .collect(Collectors.joining(" "));
+        }
+
+        //특수문자가 없을 떄는 FULLTEXT
+        Page<Post> posts = postRepository.findPostsByBoard(boardId, assembled, searchType, pageable);
+        return toSummaryResponses(posts);
     }
 
     public PostResponse getPost(Long postId) {
@@ -69,14 +87,6 @@ public class PostService {
         return PostResponse.from(post, viewCount, recommendCount, disrecommendCount);
     }
 
-    //(FULLTEXT 인덱스타도록 리팩터링 예정)
-//    public void findByTitle(String title) {
-//        //검색 결과를 어떻게 가져올것인가
-//        return postRepository.findByDeletedAtIsNull()
-//                .stream()
-//                .map(//DTO만들어서 값 답아라)
-//                .toList();
-//    }
 
     //이미지 URL도 추가해야함(18번 이미지 업로드 구현하면서 ㄱㄱ)
     public PostResponse writePost(Long memberId, Long boardId, String title, String content) {
@@ -123,14 +133,9 @@ public class PostService {
 
     public void vote(Long memberId, Long postId, VoteType voteType) {
 
-        //FK라고 해서 무조건 연관관계가 필요하지 않을 수 있음 로그성 데이터의 경우 객체 그래프 탐색 안함 -> 굳이 연관으로 둘 필요 없음
-        //굳이 post를 find하지 않고 exists만 확인 해서 성능을 챙기고(속도는 find < exists)
-        //postvote에 연관을 넣어줄 땐 프록시로 id만 넣어주는 방식도 가능
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
-        //컨트롤러의 AuthenticationPrincipal을 신뢰한다면 굳이 검증하지 않아도 됨
-        //근데 soft delete를 멤버에게도 적용할것이기 때문에 일단 검증하는 로직을 남겨둠
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
@@ -138,7 +143,6 @@ public class PostService {
             throw new CustomException(ErrorCode.DUPLICATE_VOTE);
         }
 
-        //굳이 빌더 써야했나?
         PostVote postVote = PostVote.builder()
                 .post(post)
                 .member(member)
@@ -147,25 +151,34 @@ public class PostService {
 
         try {
             postVoteRepository.save(postVote);
-            //DB insert 성공 이후 redis.incr을 실행시키기 위한 명시적 flush 호출임
-            // if (postVoteRepository.existsByMemberIdAndPostId(memberId, postId)) 이 조건문으로 중복검사는 미리 했음
-            //해당 flush는 동시요청 경쟁상태에서만 검증함 최종 방어선은 DB의 unique 제약
-            //@TransactionalEventListener(AFTER_COMMIT) 이 어노테이션으로 커밋이 성공적으로 완료되면 외부 시스템 호출하는 식으로 리팩터링할 에쩡
-
-            //0629 굳이 flush가 필요했을까? 경쟁 상황은 동일 유저가 동일 게시글에 추천/비추천을 동시에 요청하는 경우(매우 드물다)인데 그냥 락 걸었어도 괜찮은거 아니었을까
-            //굳이 필요없는 flush를 매 추천마다 해야함(DB 부하줌) 그리고
             postVoteRepository.flush();
         } catch (DataIntegrityViolationException e) {
             throw new CustomException(ErrorCode.DUPLICATE_VOTE);
         }
 
-        //redis incr 등은 EventListener로 after_commit으로 관심사를 분리하고 redis 장애 등은 로그로 남겨서 배치, 스케쥴러 할 때 반영하는 방향이면 되었을 거 같은데
-        //redis는 인프라 쪽 redis를 사용하는 로직은 redisService에 공통적으로 처리
         if (voteType == VoteType.UP) {
             redisService.increaseRecommend(postId);
-        } else {    //명시적으로 DOWN으로 표현하는게 나았으려나 UP,DOWN 말고 recommend, disrecommend가 더 의미가 정확했을 듯;;
+        } else {
             redisService.increaseDisrecommend(postId);
         }
     }
 
+    private boolean requiresLikeFallback(String keyword) {
+        return keyword.chars().anyMatch(c -> LIKE_FALLBACK_TRIGGER_CHARS.contains((char) c));
+    }
+
+    private Page<PostSummaryResponse> toSummaryResponses(Page<Post> posts) {
+        List<Long> postIds = posts.getContent().stream()
+                .map(Post::getId)
+                .toList();
+
+        Map<Long, Integer> viewCountMap = redisService.getViewCountList(postIds);
+        Map<Long, Integer> recommendMap = redisService.getRecommendList(postIds);
+
+        return posts.map(post -> PostSummaryResponse.from(
+                post,
+                viewCountMap.getOrDefault(post.getId(), post.getViewCount()),
+                recommendMap.getOrDefault(post.getId(), post.getRecommendationCount())
+        ));
+    }
 }
