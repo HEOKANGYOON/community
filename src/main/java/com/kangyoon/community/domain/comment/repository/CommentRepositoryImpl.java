@@ -22,6 +22,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom{
     public Page<Comment> findCommentsByPostId(Long postId, Pageable pageable) {
         List<Comment> content = queryFactory
                 .selectFrom(comment)
+                .join(comment.member).fetchJoin()   //member를 fetch join으로 가져와서 한번의 쿼리로 게시글 목록에서의 게시글 작성자를 표시
                 .where(comment.post.id.eq(postId))
                 .orderBy(
                         comment.parent.id.coalesce(comment.id).asc(),   // SQL 쿼리는 COALESCE(parentId, commentId)
