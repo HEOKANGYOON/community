@@ -136,3 +136,7 @@ ALTER TABLE comment_like ADD FOREIGN KEY (member_id) REFERENCES member(id);
 ALTER TABLE comment_like ADD FOREIGN KEY (comment_id) REFERENCES comment(id);
 
 ALTER TABLE notification ADD FOREIGN KEY (member_id) REFERENCES member(id);
+
+ALTER TABLE post ADD FULLTEXT INDEX idx_ft_title (title);
+
+ALTER TABLE post ADD FULLTEXT INDEX idx_ft_title_content (title, content);
