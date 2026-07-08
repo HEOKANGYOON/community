@@ -5,6 +5,7 @@ import com.kangyoon.community.domain.board.entity.Board;
 import com.kangyoon.community.domain.board.repository.BoardRepository;
 import com.kangyoon.community.domain.member.entity.Member;
 import com.kangyoon.community.domain.member.repository.MemberRepository;
+import com.kangyoon.community.domain.post.event.PostImageMoveEvent;
 import com.kangyoon.community.domain.post.dto.PostResponse;
 import com.kangyoon.community.domain.post.dto.PostSummaryResponse;
 import com.kangyoon.community.domain.post.entity.Post;
@@ -107,13 +108,18 @@ public class PostService {
                 .collect(Collectors.toSet());
 
         for (String tempUrl : tempUrls) {
-            String postUrl = s3Service.moveToPostFolder(tempUrl);   //클라이언트에서 등록한 temp를 posts로 이동
+            String postUrl = tempUrl.replaceFirst("/temp/", "/posts/");  //클라이언트에서 등록한 본문의 /temp/ 를 /posts/로 이동
             content = content.replace(tempUrl, postUrl);    //이동한 경로로 본문 url 수정
         }
 
 
         Post post = Post.createPost(member, board, title, content);
         Post saved = postRepository.save(post);
+
+        //실제 S3 버킷 이동 및 temp삭제는 after_commit으로 동기처리
+        if (!tempUrls.isEmpty()) {
+            eventPublisher.publishEvent(new PostImageMoveEvent(tempUrls));
+        }
 
         //게시글 작성 직후는 조회 0, 댓글 0 추천 / 비추천 0 을 내려줌
         return PostResponse.from(saved, 0, 0, 0);
@@ -135,7 +141,7 @@ public class PostService {
                 .collect(Collectors.toSet());
 
         for (String tempUrl : tempUrls) {
-            String postUrl = s3Service.moveToPostFolder(tempUrl);   //temp -> posts
+            String postUrl = tempUrl.replaceFirst("/temp/", "/posts/");   //temp -> posts
             newContent = newContent.replace(tempUrl, postUrl);  //본문의 경로도 수정
         }
 
@@ -145,6 +151,10 @@ public class PostService {
 
         post.editPost(title, newContent);
         postRepository.flush();     //updatedAt을 정확하게 받아오기 위함
+
+        if (!tempUrls.isEmpty()) {
+            eventPublisher.publishEvent(new PostImageMoveEvent(tempUrls));
+        }
 
         return PostResponse.from(post, viewCount, recommendCount, disrecommendCount);
     }
