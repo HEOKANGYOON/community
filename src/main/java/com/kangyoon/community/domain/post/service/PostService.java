@@ -5,6 +5,7 @@ import com.kangyoon.community.domain.board.entity.Board;
 import com.kangyoon.community.domain.board.repository.BoardRepository;
 import com.kangyoon.community.domain.member.entity.Member;
 import com.kangyoon.community.domain.member.repository.MemberRepository;
+import com.kangyoon.community.domain.post.event.PostImageMoveEvent;
 import com.kangyoon.community.domain.post.dto.PostResponse;
 import com.kangyoon.community.domain.post.dto.PostSummaryResponse;
 import com.kangyoon.community.domain.post.entity.Post;
@@ -15,17 +16,18 @@ import com.kangyoon.community.domain.post.repository.PostVoteRepository;
 import com.kangyoon.community.global.exception.CustomException;
 import com.kangyoon.community.global.exception.ErrorCode;
 import com.kangyoon.community.infrastructure.redis.RedisService;
+import com.kangyoon.community.infrastructure.s3.S3Service;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,9 +40,14 @@ public class PostService {
     private final BoardRepository boardRepository;
     private final PostVoteRepository postVoteRepository;
     private final RedisService redisService;
+    private final S3Service s3Service;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final Set<Character> LIKE_FALLBACK_TRIGGER_CHARS =
             Set.of('+', '-', '>', '<', '(', ')', '~', '*', '"', '@');
+
+    private static final Pattern S3_URL_PATTERN =
+            Pattern.compile("https://[\\w.-]+\\.s3[\\w.-]*\\.amazonaws\\.com/(temp|posts)/[\\w\\-./]+");
 
     public Page<PostSummaryResponse> getAllPost(Long boardId, String keyword, String searchType, Pageable pageable) {
 
@@ -88,7 +95,6 @@ public class PostService {
     }
 
 
-    //이미지 URL도 추가해야함(18번 이미지 업로드 구현하면서 ㄱㄱ)
     public PostResponse writePost(Long memberId, Long boardId, String title, String content) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
@@ -96,8 +102,24 @@ public class PostService {
         Board board = boardRepository.findByIdAndDeletedAtIsNull(boardId)
                 .orElseThrow(() -> new CustomException(ErrorCode.BOARD_NOT_FOUND));
 
+
+        Set<String> tempUrls = extractS3Urls(content).stream()
+                .filter(url -> url.contains("/temp/"))
+                .collect(Collectors.toSet());
+
+        for (String tempUrl : tempUrls) {
+            String postUrl = tempUrl.replaceFirst("/temp/", "/posts/");  //클라이언트에서 등록한 본문의 /temp/ 를 /posts/로 이동
+            content = content.replace(tempUrl, postUrl);    //이동한 경로로 본문 url 수정
+        }
+
+
         Post post = Post.createPost(member, board, title, content);
         Post saved = postRepository.save(post);
+
+        //실제 S3 버킷 이동 및 temp삭제는 after_commit으로 동기처리
+        if (!tempUrls.isEmpty()) {
+            eventPublisher.publishEvent(new PostImageMoveEvent(tempUrls));
+        }
 
         //게시글 작성 직후는 조회 0, 댓글 0 추천 / 비추천 0 을 내려줌
         return PostResponse.from(saved, 0, 0, 0);
@@ -111,12 +133,29 @@ public class PostService {
             throw new CustomException(ErrorCode.POST_AUTHOR_MISMATCH);
         }
 
+        String newContent = content;
+
+        //새 본문의 temp URL만 이동
+        Set<String> tempUrls = extractS3Urls(newContent).stream()
+                .filter(url -> url.contains("/temp/"))
+                .collect(Collectors.toSet());
+
+        for (String tempUrl : tempUrls) {
+            String postUrl = tempUrl.replaceFirst("/temp/", "/posts/");   //temp -> posts
+            newContent = newContent.replace(tempUrl, postUrl);  //본문의 경로도 수정
+        }
+
         int viewCount = redisService.getViewCount(postId);
         int recommendCount = redisService.getRecommendCount(postId);
         int disrecommendCount = redisService.getDisrecommendCount(postId);
 
-        post.editPost(title, content);
+        post.editPost(title, newContent);
         postRepository.flush();     //updatedAt을 정확하게 받아오기 위함
+
+        if (!tempUrls.isEmpty()) {
+            eventPublisher.publishEvent(new PostImageMoveEvent(tempUrls));
+        }
+
         return PostResponse.from(post, viewCount, recommendCount, disrecommendCount);
     }
 
@@ -181,4 +220,15 @@ public class PostService {
                 recommendMap.getOrDefault(post.getId(), post.getRecommendationCount())
         ));
     }
+
+    private Set<String> extractS3Urls(String html) {
+        if (html == null) return Collections.emptySet();
+        Matcher matcher = S3_URL_PATTERN.matcher(html);
+        Set<String> urls = new HashSet<>();
+        while (matcher.find()) {
+            urls.add(matcher.group());
+        }
+        return urls;
+    }
+
 }
