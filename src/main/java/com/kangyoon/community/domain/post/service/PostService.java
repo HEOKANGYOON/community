@@ -10,6 +10,7 @@ import com.kangyoon.community.domain.post.dto.PostSummaryResponse;
 import com.kangyoon.community.domain.post.entity.Post;
 import com.kangyoon.community.domain.post.entity.PostVote;
 import com.kangyoon.community.domain.post.entity.VoteType;
+import com.kangyoon.community.domain.post.event.PostImageCleanupEvent;
 import com.kangyoon.community.domain.post.repository.PostRepository;
 import com.kangyoon.community.domain.post.repository.PostVoteRepository;
 import com.kangyoon.community.global.exception.CustomException;
@@ -17,6 +18,7 @@ import com.kangyoon.community.global.exception.ErrorCode;
 import com.kangyoon.community.infrastructure.redis.RedisService;
 import com.kangyoon.community.infrastructure.s3.S3Service;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +41,7 @@ public class PostService {
     private final PostVoteRepository postVoteRepository;
     private final RedisService redisService;
     private final S3Service s3Service;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final Set<Character> LIKE_FALLBACK_TRIGGER_CHARS =
             Set.of('+', '-', '>', '<', '(', ')', '~', '*', '"', '@');
@@ -125,7 +128,6 @@ public class PostService {
             throw new CustomException(ErrorCode.POST_AUTHOR_MISMATCH);
         }
 
-
         String oldContent = post.getContent();
         String newContent = content;
 
@@ -145,7 +147,6 @@ public class PostService {
         Set<String> finalUrls = extractS3Urls(newContent);
         Set<String> removed = new HashSet<>(oldUrls);
         removed.removeAll(finalUrls);
-        removed.forEach(s3Service::deleteObject);
 
         int viewCount = redisService.getViewCount(postId);
         int recommendCount = redisService.getRecommendCount(postId);
@@ -153,6 +154,12 @@ public class PostService {
 
         post.editPost(title, newContent);
         postRepository.flush();     //updatedAt을 정확하게 받아오기 위함
+
+        //flush로 예외터지지 않으면 커밋 완료 후 이벤트 실행됨(after_commit임)
+        if (!removed.isEmpty()) {
+            eventPublisher.publishEvent(new PostImageCleanupEvent(removed));
+        }
+
         return PostResponse.from(post, viewCount, recommendCount, disrecommendCount);
     }
 
