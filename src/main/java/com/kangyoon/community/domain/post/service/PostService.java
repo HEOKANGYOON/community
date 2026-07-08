@@ -10,7 +10,6 @@ import com.kangyoon.community.domain.post.dto.PostSummaryResponse;
 import com.kangyoon.community.domain.post.entity.Post;
 import com.kangyoon.community.domain.post.entity.PostVote;
 import com.kangyoon.community.domain.post.entity.VoteType;
-import com.kangyoon.community.domain.post.event.PostImageCleanupEvent;
 import com.kangyoon.community.domain.post.repository.PostRepository;
 import com.kangyoon.community.domain.post.repository.PostVoteRepository;
 import com.kangyoon.community.global.exception.CustomException;
@@ -128,10 +127,7 @@ public class PostService {
             throw new CustomException(ErrorCode.POST_AUTHOR_MISMATCH);
         }
 
-        String oldContent = post.getContent();
         String newContent = content;
-
-        Set<String> oldUrls = extractS3Urls(oldContent);
 
         //새 본문의 temp URL만 이동
         Set<String> tempUrls = extractS3Urls(newContent).stream()
@@ -143,22 +139,12 @@ public class PostService {
             newContent = newContent.replace(tempUrl, postUrl);  //본문의 경로도 수정
         }
 
-        //기존에 있었는데 최종본엔 없는 이미지 삭제
-        Set<String> finalUrls = extractS3Urls(newContent);
-        Set<String> removed = new HashSet<>(oldUrls);
-        removed.removeAll(finalUrls);
-
         int viewCount = redisService.getViewCount(postId);
         int recommendCount = redisService.getRecommendCount(postId);
         int disrecommendCount = redisService.getDisrecommendCount(postId);
 
         post.editPost(title, newContent);
         postRepository.flush();     //updatedAt을 정확하게 받아오기 위함
-
-        //flush로 예외터지지 않으면 커밋 완료 후 이벤트 실행됨(after_commit임)
-        if (!removed.isEmpty()) {
-            eventPublisher.publishEvent(new PostImageCleanupEvent(removed));
-        }
 
         return PostResponse.from(post, viewCount, recommendCount, disrecommendCount);
     }
