@@ -55,6 +55,7 @@ public class MemberController {
         ResponseCookie cookie = ResponseCookie.from("refreshToken", tokens.refreshToken())
                 .httpOnly(true)
                 .secure(true)
+                .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(14))
                 .build();
@@ -82,6 +83,7 @@ public class MemberController {
         ResponseCookie cookie = ResponseCookie.from("refreshToken", tokens.refreshToken())
                 .httpOnly(true)
                 .secure(true)
+                .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(14))
                 .build();
@@ -90,4 +92,27 @@ public class MemberController {
 
         return ResponseEntity.ok(new ApiResponse<>("토큰 재발급 성공", new LoginResponse(tokens.accessToken())));
     }
+
+    @Tag(name = "Member", description = "Member API")
+    @Operation(
+            summary = "로그아웃",
+            description = "리프레시 토큰을 redis에서 제거 후 브라우저 쿠키에 있는 refreshToken을 제거합니다."
+    )
+    @PostMapping("/api/auth/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @CookieValue(value = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response) {
+        memberService.logout(refreshToken);
+
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(0)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
+        return ResponseEntity.ok(new ApiResponse<>("로그아웃 성공", null));
+    }
+
 }
