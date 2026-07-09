@@ -110,9 +110,7 @@ public class MemberService {
             return; //유효하지 않거나 만료된 토큰은 그냥 삼킴 리프레시 토큰 삭제 X
         }
 
-        Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
-
-        redisTemplate.delete("refresh:" + member.getId());
+        memberRepository.findByEmail(email)
+                .ifPresent(member -> redisTemplate.delete("refresh:" + member.getId()));
     }
 }
