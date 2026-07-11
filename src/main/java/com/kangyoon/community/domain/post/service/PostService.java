@@ -83,8 +83,6 @@ public class PostService {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
-        //게시글 상세 조회 시 조회수가 증가한다, TTL은 따로 설정하지 않기로 함
-        //TTL을 걸 경우 increaseViewCount 호출 전 ip주소, memberId등을 redis에 TTL걸어서 적재 하는 방법이 있음
         redisService.increaseViewCount(postId);
 
         int viewCount = redisService.getViewCount(postId);
