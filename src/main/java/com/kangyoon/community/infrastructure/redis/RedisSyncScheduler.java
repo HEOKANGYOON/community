@@ -26,7 +26,7 @@ public class RedisSyncScheduler {
     private void safeSync(Runnable task, String label) {
         try {
             task.run();
-        } catch (DataAccessException e) {
+        } catch (Exception e) { //DataAccessException → Exception   예상 외의 런타임 잡기(NumberFormatException 등)
             log.warn("{} 배치 동기화 실패", label, e);
         }
     }
