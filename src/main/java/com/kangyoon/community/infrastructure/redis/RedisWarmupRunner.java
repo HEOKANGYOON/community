@@ -14,6 +14,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -39,16 +40,22 @@ public class RedisWarmupRunner implements ApplicationRunner {
     private final CommentRepository commentRepository;
     private final CommentLikeRepository commentLikeRepository;
     private final PostVoteRepository postVoteRepository;
+    private final RedisService redisService;
 
 
     @Override
     public void run(ApplicationArguments args) {
+        safeFlush(redisService::syncViewCountsToDB, "조회수");
+        safeFlush(redisService::syncRecommendCountsToDB, "추천수");
+        safeFlush(redisService::syncDisrecommendCountsToDB, "비추천수");
+        safeFlush(redisService::syncCommentLikeCountsToDB, "댓글좋아요");
+
         try {
             warmupPosts();
             warmupComments();
         } catch (DataAccessException e) {
-            // 웜업 시점에 Redis가 안 떠있는 경우: 서버는 정상 기동시키고
-            // 이후엔 기존 개별 캐시미스 fallback(safeGet/safeSet)이 처리하도록 넘긴다
+            //웜업 시점에 Redis가 안 떠있는 경우 서버는 정상 기동시키고
+            //이후엔 기존 개별 캐시미스 fallback safeGet/safeSet이 처리하도록 넘긴다
             log.warn("Redis 웜업 실패, 개별 요청의 캐시미스 fallback으로 대체됩니다.", e);
         }
     }
@@ -58,7 +65,13 @@ public class RedisWarmupRunner implements ApplicationRunner {
         Page<Post> page;
 
         do {
-            page = postRepository.findAllByDeletedAtIsNull(PageRequest.of(pageNumber, PAGE_SIZE));
+            try {
+                page = postRepository.findAllByDeletedAtIsNull(PageRequest.of(pageNumber, PAGE_SIZE, Sort.by("id").ascending()));
+            } catch (DataAccessException e) {
+                log.warn("게시글 웜업 중단 - DB 조회 실패 (page={})", pageNumber, e);
+                return;
+            }
+
             List<Long> postIds = page.getContent().stream().map(Post::getId).toList();
 
             Map<Long, Integer> recommendCounts = postVoteRepository.countByPostIdsAndVoteType(postIds, VoteType.UP);
@@ -73,7 +86,12 @@ public class RedisWarmupRunner implements ApplicationRunner {
                 batch.put(POST_DISRECOMMEND_KEY + post.getId(), String.valueOf(disrecommendCounts.getOrDefault(post.getId(), 0)));
             });
 
+            try {
                 redisTemplate.opsForValue().multiSet(batch);
+            } catch (DataAccessException e) {
+                log.warn("게시글 웜업 중단 - Redis 반영 실패 (page={})", pageNumber, e);
+                return;
+            }
 
             pageNumber++;
         } while (page.hasNext());
@@ -86,7 +104,12 @@ public class RedisWarmupRunner implements ApplicationRunner {
         Page<Comment> page;
 
         do {
-            page = commentRepository.findAllByDeletedAtIsNull(PageRequest.of(pageNumber, PAGE_SIZE));
+            try {
+                page = commentRepository.findAllByDeletedAtIsNull(PageRequest.of(pageNumber, PAGE_SIZE, Sort.by("id").ascending()));
+            } catch (DataAccessException e) {
+                log.warn("댓글 웜업 중단 - DB 조회 실패 (page={})", pageNumber, e);
+                return;
+            }
             List<Long> commentIds = page.getContent().stream().map(Comment::getId).toList();
 
             Map<Long, Integer> likeCounts = commentLikeRepository.countByCommentIds(commentIds);
@@ -98,12 +121,26 @@ public class RedisWarmupRunner implements ApplicationRunner {
                     ));
 
 
-            redisTemplate.opsForValue().multiSet(batch);
+            try {
+                redisTemplate.opsForValue().multiSet(batch);
+
+            } catch (DataAccessException e) {
+                log.warn("댓글 웜업 중단 - Redis 반영 실패 (page={})", pageNumber, e);
+                return;
+            }
 
             pageNumber++;
         } while (page.hasNext());
 
         log.info("댓글 캐시 웜업 완료");
+    }
+
+    private void safeFlush(Runnable task, String label) {
+        try {
+            task.run();
+        } catch (Exception e) {
+            log.warn("웜업 전 {} 잔여분 반영 실패, DB 스냅샷 기준으로 진행", label, e);
+        }
     }
 
 }
