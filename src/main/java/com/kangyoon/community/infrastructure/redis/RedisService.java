@@ -16,6 +16,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
@@ -257,173 +258,19 @@ public class RedisService {
     }
 
     public void syncViewCountsToDB() {
-        Set<String> dirtyIds = getDirtySetAndSwap(DIRTY_VIEWCOUNT_KEY);
-
-        if (dirtyIds.isEmpty()) {
-            return; //이번 주기 배치 없음
-        }
-
-        try {
-            //배치 대상 키 리스트
-            List<String> keys = dirtyIds.stream()
-                    .map(id -> POST_VIEWCOUNT_KEY + id)
-                    .toList();
-
-            //배치 대상 키의 value MGET으로 가져옴
-            List<String> values = redisTemplate.opsForValue().multiGet(keys);
-            if (values == null) {
-                values = Collections.emptyList();
-            }
-
-            //배치 대상 id, value를 돌면서 countMap에 저장
-            Map<Long, Integer> countMap = new HashMap<>();
-            Iterator<String> idIt = dirtyIds.iterator();
-            Iterator<String> valIt = values.iterator();
-            while (idIt.hasNext() && valIt.hasNext()) {
-                Long id = Long.valueOf(idIt.next());
-                String val = valIt.next();
-                if (val != null) {
-                    countMap.put(id, Integer.valueOf(val));
-                }
-            }
-
-            if (!countMap.isEmpty()) {
-                postBatchRepository.batchUpdateViewCount(countMap);
-            }
-            commitDirtySet(DIRTY_VIEWCOUNT_KEY);    //트랜잭션이 완료되면 삭제한 채로 두고
-        } catch (Exception e) {
-            rollbackDirtySet(DIRTY_VIEWCOUNT_KEY, dirtyIds, e);    //실패 시 롤백 됨 롤백도 실패하면 로그 남김(파라미터로 원본 예외 객체 넣음)
-            throw e;    //다시 해당 예외 던짐
-        }
-
+        syncToDb(DIRTY_VIEWCOUNT_KEY, POST_VIEWCOUNT_KEY, postBatchRepository::batchUpdateViewCount);
     }
 
     public void syncRecommendCountsToDB() {
-        Set<String> dirtyIds = getDirtySetAndSwap(DIRTY_RECOMMEND_KEY);
-
-        if (dirtyIds.isEmpty()) {
-            return;
-        }
-
-        try {
-            //배치 대상 키 리스트
-            List<String> keys = dirtyIds.stream()
-                    .map(id -> POST_RECOMMEND_KEY + id)
-                    .toList();
-
-            //배치 대상 키의 value MGET으로 가져옴
-            List<String> values = redisTemplate.opsForValue().multiGet(keys);
-            if (values == null) {
-                values = Collections.emptyList();
-            }
-
-            //배치 대상 id, value를 돌면서 countMap에 저장
-            Map<Long, Integer> countMap = new HashMap<>();
-            Iterator<String> idIt = dirtyIds.iterator();
-            Iterator<String> valIt = values.iterator();
-            while (idIt.hasNext() && valIt.hasNext()) {
-                Long id = Long.valueOf(idIt.next());
-                String val = valIt.next();
-                if (val != null) {
-                    countMap.put(id, Integer.valueOf(val));
-                }
-            }
-
-            if (!countMap.isEmpty()) {
-                postBatchRepository.batchUpdateRecommendCount(countMap);
-            }
-            commitDirtySet(DIRTY_RECOMMEND_KEY);
-        } catch (Exception e) {
-            rollbackDirtySet(DIRTY_RECOMMEND_KEY, dirtyIds, e);
-            throw e;
-        }
-
+        syncToDb(DIRTY_RECOMMEND_KEY, POST_RECOMMEND_KEY, postBatchRepository::batchUpdateRecommendCount);
     }
 
-
     public void syncDisrecommendCountsToDB() {
-        Set<String> dirtyIds = getDirtySetAndSwap(DIRTY_DISRECOMMEND_KEY);
-
-        if (dirtyIds.isEmpty()) {
-            return;
-        }
-
-        try {
-            //배치 대상 키 리스트
-            List<String> keys = dirtyIds.stream()
-                    .map(id -> POST_DISRECOMMEND_KEY + id)
-                    .toList();
-
-            //배치 대상 키의 value MGET으로 가져옴
-            List<String> values = redisTemplate.opsForValue().multiGet(keys);
-            if (values == null) {
-                values = Collections.emptyList();
-            }
-
-            //배치 대상 id, value를 돌면서 countMap에 저장
-            Map<Long, Integer> countMap = new HashMap<>();
-            Iterator<String> idIt = dirtyIds.iterator();
-            Iterator<String> valIt = values.iterator();
-            while (idIt.hasNext() && valIt.hasNext()) {
-                Long id = Long.valueOf(idIt.next());
-                String val = valIt.next();
-                if (val != null) {
-                    countMap.put(id, Integer.valueOf(val));
-                }
-            }
-
-            if (!countMap.isEmpty()) {
-                postBatchRepository.batchUpdateDisrecommendCount(countMap);
-            }
-            commitDirtySet(DIRTY_DISRECOMMEND_KEY);
-        } catch (Exception e) {
-            rollbackDirtySet(DIRTY_DISRECOMMEND_KEY, dirtyIds, e);
-            throw e;
-        }
-
-
+        syncToDb(DIRTY_DISRECOMMEND_KEY, POST_DISRECOMMEND_KEY, postBatchRepository::batchUpdateDisrecommendCount);
     }
 
     public void syncCommentLikeCountsToDB() {
-        Set<String> dirtyIds = getDirtySetAndSwap(DIRTY_COMMENT_LIKE_KEY);
-
-        if (dirtyIds.isEmpty()) {
-            return;
-        }
-
-        try {
-            //배치 대상 키 리스트
-            List<String> keys = dirtyIds.stream()
-                    .map(id -> COMMENT_LIKE_KEY + id)
-                    .toList();
-
-            //배치 대상 키의 value MGET으로 가져옴
-            List<String> values = redisTemplate.opsForValue().multiGet(keys);
-            if (values == null) {
-                values = Collections.emptyList();
-            }
-
-            //배치 대상 id, value를 돌면서 countMap에 저장
-            Map<Long, Integer> countMap = new HashMap<>();
-            Iterator<String> idIt = dirtyIds.iterator();
-            Iterator<String> valIt = values.iterator();
-            while (idIt.hasNext() && valIt.hasNext()) {
-                Long id = Long.valueOf(idIt.next());
-                String val = valIt.next();
-                if (val != null) {
-                    countMap.put(id, Integer.valueOf(val));
-                }
-            }
-
-            if (!countMap.isEmpty()) {
-                commentBatchRepository.updateCommentLike(countMap);
-            }
-            commitDirtySet(DIRTY_COMMENT_LIKE_KEY);
-        } catch (Exception e) {
-            rollbackDirtySet(DIRTY_COMMENT_LIKE_KEY, dirtyIds, e);
-            throw e;
-        }
-
+        syncToDb(DIRTY_COMMENT_LIKE_KEY, COMMENT_LIKE_KEY, commentBatchRepository::updateCommentLike);
     }
 
 
@@ -480,6 +327,43 @@ public class RedisService {
             log.error("dirty set 롤백 실패, 데이터 유실 가능성 있음. dirtyKey={}, members={}", dirtyKey, members, rollbackFailure);
         }
 
+    }
+
+    private void syncToDb(String dirtyKey, String valueKeyPrefix, Consumer<Map<Long, Integer>> batchUpdate) {
+        Set<String> dirtyIds = getDirtySetAndSwap(dirtyKey);
+        if (dirtyIds.isEmpty()) {
+            return;
+        }
+
+        try {
+            List<String> keys = dirtyIds.stream()
+                    .map(id -> valueKeyPrefix + id)
+                    .toList();
+
+            List<String> values = redisTemplate.opsForValue().multiGet(keys);
+            if (values == null) {
+                values = Collections.emptyList();
+            }
+
+            Map<Long, Integer> countMap = new HashMap<>();
+            Iterator<String> idIt = dirtyIds.iterator();
+            Iterator<String> valIt = values.iterator();
+            while (idIt.hasNext() && valIt.hasNext()) {
+                Long id = Long.valueOf(idIt.next());
+                String val = valIt.next();
+                if (val != null) {
+                    countMap.put(id, Integer.valueOf(val));
+                }
+            }
+
+            if (!countMap.isEmpty()) {
+                batchUpdate.accept(countMap);
+            }
+            commitDirtySet(dirtyKey);
+        } catch (Exception e) {
+            rollbackDirtySet(dirtyKey, dirtyIds, e);
+            throw e;
+        }
     }
 
 }
