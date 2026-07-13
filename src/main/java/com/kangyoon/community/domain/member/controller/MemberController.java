@@ -54,7 +54,7 @@ public class MemberController {
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", tokens.refreshToken())
                 .httpOnly(true)
-                .secure(true)
+                .secure(true)   //배포 빌드 시 무조건 true로 해야함
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(14))
@@ -82,7 +82,7 @@ public class MemberController {
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", tokens.refreshToken())
                 .httpOnly(true)
-                .secure(true)
+                .secure(true)   //배포 시 true로
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(14))

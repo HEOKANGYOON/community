@@ -47,8 +47,6 @@ public class NotificationService {
     }
 
     public List<NotificationResponse> noticeList(Long userId) {
-        //AuthenticationPrincipal로 가져온것이라서 member객체를 가져오지는 않겠음
-
         List<Notification> notificationList = notificationRepository.findTop30ByMemberIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
 
         return notificationList.stream()

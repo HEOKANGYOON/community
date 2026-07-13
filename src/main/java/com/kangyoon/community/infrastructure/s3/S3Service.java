@@ -114,15 +114,7 @@ public class S3Service {
         return buildImageUrl(postKey);
     }
 
-    // 삭제도 URL 기준으로 받도록 (removed 처리용)
-    // 게시글 수정 시 삭제한 이미지 버킷에서 제거
-    public void deleteObject(String imageUrl) {
-        String key = extractKeyFromUrl(imageUrl);
-        DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .build();
-        s3Client.deleteObject(deleteRequest);
-    }
-
+    // TODO: 게시글 수정 시 삭제된 이미지 정리 기능.
+    // URL 기반 삭제는 소유권 검증이 안 돼 제거함(누구나 임의 URL로 남의 이미지 삭제 가능했음).
+    // 재구현 시 CloudFront로 버킷을 가려 이미지명만 노출하는 구조로 변경 예정.
 }

@@ -141,8 +141,11 @@ public class CommentService {
 
         Optional<CommentLike> existing = commentLikeRepository.findByMemberIdAndCommentId(memberId, commentId);
 
-//      현재는 flush 비용보다 단순성이 더 중요
-//      향후 AFTER_COMMIT 이벤트로 정합성 개선 예정
+// commentLikeToggle: save() 이후 명시적 flush 없이 increaseCommentLike 호출
+// -> 트랜잭션 커밋 실패 시 DB엔 반영 안 됐는데 Redis 카운트만 올라가는 정합성 문제 가능성 있음
+// vote()는 flush()로 즉시 검증하지만 이쪽은 커밋 시점까지 미룸 (flush 비용 절감 목적)
+// 개선 방향: vote()처럼 flush() 추가하거나, @TransactionalEventListener(AFTER_COMMIT)으로
+// Redis 반영을 커밋 이후로 미루는 방식 고려
         if (existing.isPresent()) {
             commentLikeRepository.delete(existing.get());
             redisService.decreaseCommentLike(commentId);
