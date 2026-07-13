@@ -21,7 +21,10 @@ public class BoardService {
 
     private final BoardRepository boardRepository;
     private final BoardCategoryRepository boardCategoryRepository;
-    private final BoardManagerRepository boardManagerRepository;        //TODO:게시판 관리자는 게시글 및 댓글 관리할 때 추가
+    // TODO: 게시판 자치 운영 기능 (유저의 게시판 개설 요청 → ADMIN 승인 → 요청자가 BoardManager로 등록 → 게시글/댓글 관리 권한)
+    // 미구현. 디시인사이드 마이너 갤러리 모델 참고하여 설계했으나, 개설 요청/승인 워크플로우까지 포함된 별도 규모의 기능이라 이번 프로젝트 스코프에서 제외. BoardManager 엔티티/리포지토리만 우선 구성해둠.
+    // → 향후 계획 후보로 이관
+    private final BoardManagerRepository boardManagerRepository;
 
     public List<BoardResponse> getBoards() {
         return boardRepository.findByDeletedAtIsNull()

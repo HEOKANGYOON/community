@@ -2,7 +2,6 @@ package com.kangyoon.community.domain.post.entity;
 
 import com.kangyoon.community.domain.member.entity.Member;
 import com.kangyoon.community.global.config.BaseTimeEntity;
-import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;

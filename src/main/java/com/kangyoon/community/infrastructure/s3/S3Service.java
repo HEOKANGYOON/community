@@ -6,6 +6,9 @@ import com.kangyoon.community.infrastructure.s3.dto.PresignedUrlResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
@@ -20,6 +23,7 @@ import java.util.UUID;
 public class S3Service {
 
     private final S3Presigner s3Presigner;
+    private final S3Client s3Client;
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
@@ -65,14 +69,52 @@ public class S3Service {
         }
     }
 
-    //posts/ + 랜덤 uuid + 확장자
+    //temp/ + 랜덤 uuid + 확장자
     private String generateKey(String originalFilename) {
         String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        return "posts/" + UUID.randomUUID() + extension;
+        //클라이언트에서 이미지를 업로드 할 때 temp/로 저장되게 함(고아 이미지 관리 때매)
+        return "temp/" + UUID.randomUUID() + extension;
     }
 
     //이미지 url 생성
     private String buildImageUrl(String key) {
         return "https://" + bucket + ".s3." + region + ".amazonaws.com/" + key;
     }
+
+    // URL -> key 역변환
+    private String extractKeyFromUrl(String imageUrl) {
+        String prefix = buildImageUrl(""); // "https://bucket.s3.region.amazonaws.com/"
+        if (!imageUrl.startsWith(prefix)) {
+            throw new IllegalArgumentException("Invalid S3 URL: " + imageUrl);
+        }
+        return imageUrl.substring(prefix.length()); // "temp/abc-123.jpg"
+    }
+
+    // temp -> post 이동, URL 받아서 URL 반환
+    public String moveToPostFolder(String tempUrl) {
+        String tempKey = extractKeyFromUrl(tempUrl);
+        String postKey = tempKey.replaceFirst("^temp/", "posts/");
+
+        //temp -> posts 복사
+        CopyObjectRequest copyRequest = CopyObjectRequest.builder()
+                .sourceBucket(bucket)
+                .sourceKey(tempKey)
+                .destinationBucket(bucket)
+                .destinationKey(postKey)
+                .build();
+        s3Client.copyObject(copyRequest);
+
+        //temp에 있던 것 삭제
+        DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                .bucket(bucket)
+                .key(tempKey)
+                .build();
+        s3Client.deleteObject(deleteRequest);
+
+        return buildImageUrl(postKey);
+    }
+
+    // TODO: 게시글 수정 시 삭제된 이미지 정리 기능.
+    // URL 기반 삭제는 소유권 검증이 안 돼 제거함(누구나 임의 URL로 남의 이미지 삭제 가능했음).
+    // 재구현 시 CloudFront로 버킷을 가려 이미지명만 노출하는 구조로 변경 예정.
 }

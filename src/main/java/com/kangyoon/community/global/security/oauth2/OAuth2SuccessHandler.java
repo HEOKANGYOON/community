@@ -16,8 +16,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -51,15 +49,14 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                //TODO 배포파일 확인해봐바 secure설정 true 아닌거 같은데
-                .secure(false)  //배포시 true해야함 로컬은 http라서 쿠키 전달안됨
+                .secure(true)  //배포시 true해야함 로컬은 http라서 쿠키 전달안됨
                 .path("/")
+                .sameSite("Lax")
                 .maxAge(Duration.ofDays(14))
                 .build();
         //헤더로 쿠키(리프레시 토큰) 내려줌
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        //
         String targetUrl = UriComponentsBuilder
                 .fromUriString(redirectUri)
                 .queryParam("token", accessToken)
@@ -67,16 +64,5 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                 .toUriString();
 
         response.sendRedirect(targetUrl);
-
-
-
-//        Map<String, Object> body = new LinkedHashMap<>();
-//        body.put("message", "로그인 성공");
-//        body.put("data", Map.of("accessToken", accessToken));
-//
-//        response.setStatus(HttpServletResponse.SC_OK);
-//        response.setContentType("application/json");
-//        response.setCharacterEncoding("UTF-8");
-//        response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 }
