@@ -17,10 +17,22 @@ function authHeaders() {
     return headers;
 }
 
-function logout() {
-    localStorage.removeItem('accessToken');
+async function logout() {
     if (sseAbortController) sseAbortController.abort();
-    window.location.replace('/login.html');
+
+    try {
+        await fetch(`${API_BASE}/api/auth/logout`, {
+            method: 'POST',
+            headers: authHeaders(),
+            credentials: 'include' // refreshToken 쿠키 전송을 위해 필요
+        });
+    } catch (e) {
+        // 로그아웃 API 요청이 실패해도 클라이언트 측 로그아웃(토큰 삭제, 리다이렉트)은 진행
+        console.error('로그아웃 API 요청 실패:', e);
+    } finally {
+        localStorage.removeItem('accessToken');
+        window.location.replace('/login.html');
+    }
 }
 
 // ────────────────────────────────────────────────
