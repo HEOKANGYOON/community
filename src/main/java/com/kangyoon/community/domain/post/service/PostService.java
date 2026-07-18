@@ -54,19 +54,21 @@ public class PostService {
         String assembled = null;
 
         if (keyword != null && !keyword.isBlank()) {
-            String trimKeyword = keyword.trim();
+            String trimKeyword = keyword.trim();    //양옆 공백 제거
 
             if (requiresLikeFallback(trimKeyword)) {    //LIKE_FALLBACK_TRIGGER_CHARS에 있는 특수문자를 포함한 경우 LIKE검색으로
                 Page<Post> posts = postRepository.findPostsByBoardLike(boardId, trimKeyword, searchType, pageable);
                 return toSummaryResponses(posts);
             }
 
-            List<String> tokens = Arrays.stream(trimKeyword.split("\\s+"))  // 공백이 연속되는 경우까지 막아야함 \s+
-                    .filter(token -> token.length() >= 2)
+            List<String> tokens = Arrays.stream(trimKeyword.split("\\s+"))  //공백이 연속되는 경우까지 막아야함 \s+
+                    .filter(token -> token.length() >= 2)   //2글자 이상의 토큰만 저장
                     .toList();
 
-            if (tokens.isEmpty()) { //입력은 했지만 유효한 토큰이 없으면
-                return Page.empty(pageable);    //DB 호출 없이 바로 리턴함(조회 결과 없이 페이징 정보만)
+            // ngram=2 특성상 2글자 미만 토큰은 FULLTEXT 인덱스에서 검색 불가 -> LIKE로 분기
+            if (tokens.isEmpty()) { //입력은 했지만 유효한 토큰이 없으면 LIKE로 분기("홍 길 동" 같은 문자열)
+                Page<Post> posts = postRepository.findPostsByBoardLike(boardId, trimKeyword, searchType, pageable);
+                return toSummaryResponses(posts);
             }
 
             assembled = tokens.stream()
@@ -74,7 +76,7 @@ public class PostService {
                     .collect(Collectors.joining(" "));
         }
 
-        //특수문자가 없을 떄는 FULLTEXT
+        //특수문자가 없고 유효 토큰이 1개 이상 있거나(검색어가 있는 경우) 또는 검색어가 없는 경우
         Page<Post> posts = postRepository.findPostsByBoard(boardId, assembled, searchType, pageable);
         return toSummaryResponses(posts);
     }
