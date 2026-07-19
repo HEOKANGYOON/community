@@ -34,14 +34,28 @@ public class ReconciliationScheduler {
 
         safeRun(() -> {
             List<Long> postIds = postVoteRepository.findDistinctPostIdsSince(since);
-            postBatchRepository.reconcileRecommendCounts(postIds);
-            postBatchRepository.reconcileDisrecommendCounts(postIds);
+
+            // 1000개씩 청크 처리
+            for (int i = 0; i < postIds.size(); i += 1000) {
+                // 마지막 청크는 1000개 미만일 수 있으므로 리스트 크기를 넘지 않도록 처리
+                List<Long> chunk = postIds.subList(i, Math.min(postIds.size(), i + 1000));
+                postBatchRepository.reconcileRecommendCounts(chunk);
+                postBatchRepository.reconcileDisrecommendCounts(chunk);
+            }
+
             log.info("추천/비추천 reconciliation 완료, 대상 postId 수={}", postIds.size());
         }, "추천/비추천 reconciliation");
 
         safeRun(() -> {
             List<Long> commentIds = commentLikeRepository.findDistinctCommentIdsSince(since);
-            commentBatchRepository.reconcileCommentLikeCounts(commentIds);
+
+            // 1000개씩 청크 처리
+            for (int i = 0; i < commentIds.size(); i += 1000) {
+                // 마지막 청크는 1000개 미만일 수 있으므로 리스트 크기를 넘지 않도록 처리
+                List<Long> chunk = commentIds.subList(i, Math.min(commentIds.size(), i + 1000));
+                commentBatchRepository.reconcileCommentLikeCounts(chunk);
+            }
+
             log.info("댓글좋아요 reconciliation 완료, 대상 commentId 수={}", commentIds.size());
         }, "댓글좋아요 reconciliation");
     }
