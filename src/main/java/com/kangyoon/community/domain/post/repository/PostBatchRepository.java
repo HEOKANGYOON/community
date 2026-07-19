@@ -3,6 +3,7 @@ package com.kangyoon.community.domain.post.repository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ public class PostBatchRepository{
     private final JdbcTemplate jdbcTemplate;
 
     // 게시글 조회수 변동(증가분) 배치
+    @Transactional
     public void batchIncreaseViewCount(Map<Long, Integer> deltaMap) {
         List<Object[]> params = deltaMap.entrySet().stream()
                 .map(entry -> new Object[]{entry.getValue(), entry.getKey()})
@@ -26,6 +28,7 @@ public class PostBatchRepository{
     }
 
     // 게시글 추천수 변동(증가분) 배치
+    @Transactional
     public void batchIncreaseRecommendCount(Map<Long, Integer> deltaMap) {
         List<Object[]> params = deltaMap.entrySet().stream()
                 .map(entry -> new Object[]{entry.getValue(), entry.getKey()})
@@ -38,6 +41,7 @@ public class PostBatchRepository{
     }
 
     // 게시글 비추천수 변동(증가분) 배치
+    @Transactional
     public void batchIncreaseDisrecommendCount(Map<Long, Integer> deltaMap) {
         List<Object[]> params = deltaMap.entrySet().stream()
                 .map(entry -> new Object[]{entry.getValue(), entry.getKey()})

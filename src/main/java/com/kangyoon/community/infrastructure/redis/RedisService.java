@@ -1,6 +1,6 @@
 package com.kangyoon.community.infrastructure.redis;
 
-import com.kangyoon.community.domain.board.repository.CommentBatchRepository;
+import com.kangyoon.community.domain.comment.repository.CommentBatchRepository;
 import com.kangyoon.community.domain.post.repository.PostBatchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -173,7 +173,6 @@ public class RedisService {
         }
 
         Map<Object, Object> rawDeltas = redisTemplate.opsForHash().entries(processingKey);
-        log.info("[FLUSH] {} - rawDeltas={}", deltaKey, rawDeltas);   // 여기 로그가 핵심
         if (rawDeltas.isEmpty()) {
             redisTemplate.delete(processingKey);
             return;
@@ -183,23 +182,43 @@ public class RedisService {
         for (Map.Entry<Object, Object> entry : rawDeltas.entrySet()) {
             deltaMap.put(Long.valueOf(entry.getKey().toString()), Integer.valueOf(entry.getValue().toString()));
         }
-        log.info("[FLUSH] {} - deltaMap={}", deltaKey, deltaMap);   // 파싱 결과 확인
+        log.info("[FLUSH] {} - deltaMap={}", deltaKey, deltaMap);
 
+        // 1단계: DB 반영 실패하면 deltaMap을 원래 키(deltaKey)로 복구해야 함 (진짜 롤백)
         try {
             batchUpdate.accept(deltaMap);
-            log.info("[FLUSH] {} - DB 반영 완료", deltaKey);   // 성공 여부 확인
-            redisTemplate.delete(processingKey);
-        } catch (Exception e) {
+            log.info("[FLUSH] {} - DB 반영 완료", deltaKey);
+        } catch (Exception dbException) {
+            log.error("[FLUSH] {} - DB 반영 실패, 원인: ", deltaKey, dbException);
+
+            // 1-1단계: 복구 (실패하면 진짜 데이터 유실)
             try {
-                log.error("[FLUSH] {} - DB 반영 실패, 원인: ", deltaKey, e);   // 실패 시 진짜 원인
                 deltaMap.forEach((id, delta) ->
                         redisTemplate.opsForHash().increment(deltaKey, id.toString(), delta));
-                redisTemplate.delete(processingKey);
-            } catch (DataAccessException rollbackFailure) {
-                e.addSuppressed(rollbackFailure);
-                log.error("delta 롤백 실패, 데이터 유실 가능성. key={}, deltaMap={}", deltaKey, deltaMap, rollbackFailure);
+            } catch (DataAccessException restoreFailure) {
+                dbException.addSuppressed(restoreFailure);
+                log.error("delta 복구 실패, 데이터 유실 가능성 있음. key={}, deltaMap={}", deltaKey, deltaMap, restoreFailure);
+                throw dbException;
             }
-            throw e;
+
+            // 1-2단계: processingKey 청소 (복구는 이미 성공했으므로 실패해도 괜찮음, 다음 RENAME이 덮어씀)
+            try {
+                redisTemplate.delete(processingKey);
+            } catch (DataAccessException cleanupFailure) {
+                log.warn("[FLUSH] {} - 롤백 복구는 성공했으나 processingKey 청소 실패. 다음 배치의 RENAME이 자동 정리함. processingKey={}",
+                        deltaKey, processingKey, cleanupFailure);
+            }
+
+            throw dbException;
+        }
+
+        // 2단계: DB 반영은 이미 성공 processingKey 삭제만 남음. 실패해도 deltaMap을 되돌리면 안 됨(이중 가산 방지)
+        try {
+            redisTemplate.delete(processingKey);
+        } catch (DataAccessException deleteException) {
+            log.warn("[FLUSH] {} - DB 반영은 성공했으나 processingKey 삭제 실패. 다음 배치의 RENAME이 자동 정리함. processingKey={}",
+                    deltaKey, processingKey, deleteException);
+            // 롤백 없음, throw 없음 — DB는 이미 확정, 정상 흐름으로 종료
         }
     }
 
