@@ -53,4 +53,38 @@ public class PostBatchRepository{
         );
     }
 
+
+    // 지난 n일간 변동된 게시글 추천수의 정합성 배치(redis 증가 실패를 반영해주기 위함)
+    @Transactional
+    public void reconcileRecommendCounts(List<Long> postIds) {
+        if (postIds.isEmpty()) return;
+
+        List<Object[]> params = postIds.stream()
+                .map(id -> new Object[]{id})
+                .toList();
+
+        jdbcTemplate.batchUpdate(
+                "UPDATE post p SET p.recommendation_count = " +
+                        "(SELECT COUNT(*) FROM post_vote pv WHERE pv.post_id = p.id AND pv.vote_type = 'UP') " +
+                        "WHERE p.id = ?",
+                params
+        );
+    }
+    // 지난 n일간 변동된 게시글 비추천수의 정합성 배치(redis 증가 실패를 반영해주기 위함)
+    @Transactional
+    public void reconcileDisrecommendCounts(List<Long> postIds) {
+        if (postIds.isEmpty()) return;
+
+        List<Object[]> params = postIds.stream()
+                .map(id -> new Object[]{id})
+                .toList();
+
+        jdbcTemplate.batchUpdate(
+                "UPDATE post p SET p.disrecommendation_count = " +
+                        "(SELECT COUNT(*) FROM post_vote pv WHERE pv.post_id = p.id AND pv.vote_type = 'DOWN') " +
+                        "WHERE p.id = ?",
+                params
+        );
+    }
+
 }

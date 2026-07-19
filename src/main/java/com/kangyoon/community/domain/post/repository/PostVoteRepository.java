@@ -1,15 +1,18 @@
 package com.kangyoon.community.domain.post.repository;
 
 import com.kangyoon.community.domain.post.entity.PostVote;
-import com.kangyoon.community.domain.post.entity.VoteType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
 public interface PostVoteRepository extends JpaRepository<PostVote, Long>, PostVoteRepositoryCustom{
-    Optional<PostVote> findByMemberIdAndPostId(Long memberId, Long postId);
     boolean existsByMemberIdAndPostId(Long memberId, Long postId);
-    int countByPostIdAndVoteType(Long postId, VoteType voteType);
+
+    @Query("SELECT DISTINCT pv.post.id FROM PostVote pv WHERE pv.createdAt >= :since")
+    List<Long> findDistinctPostIdsSince(@Param("since") LocalDateTime since);
 }
