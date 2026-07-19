@@ -16,7 +16,6 @@ import com.kangyoon.community.domain.post.repository.PostVoteRepository;
 import com.kangyoon.community.global.exception.CustomException;
 import com.kangyoon.community.global.exception.ErrorCode;
 import com.kangyoon.community.infrastructure.redis.RedisService;
-import com.kangyoon.community.infrastructure.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -40,7 +39,6 @@ public class PostService {
     private final BoardRepository boardRepository;
     private final PostVoteRepository postVoteRepository;
     private final RedisService redisService;
-    private final S3Service s3Service;
     private final ApplicationEventPublisher eventPublisher;
 
     private static final Set<Character> LIKE_FALLBACK_TRIGGER_CHARS =
@@ -83,11 +81,11 @@ public class PostService {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
-        redisService.increaseViewCount(postId);
+        redisService.increaseViewDelta(postId);
 
-        int viewCount = redisService.getViewCount(postId);
-        int recommendCount = redisService.getRecommendCount(postId);
-        int disrecommendCount = redisService.getDisrecommendCount(postId);
+        int viewCount = post.getViewCount() + redisService.getViewDelta(postId);
+        int recommendCount = post.getRecommendationCount() + redisService.getRecommendDelta(postId);       // 변경
+        int disrecommendCount = post.getDisrecommendationCount() + redisService.getDisrecommendDelta(postId); // 변경
 
         return PostResponse.from(post, viewCount, recommendCount, disrecommendCount);
     }
@@ -143,9 +141,9 @@ public class PostService {
             newContent = newContent.replace(tempUrl, postUrl);  //본문의 경로도 수정
         }
 
-        int viewCount = redisService.getViewCount(postId);
-        int recommendCount = redisService.getRecommendCount(postId);
-        int disrecommendCount = redisService.getDisrecommendCount(postId);
+        int viewCount = post.getViewCount() + redisService.getViewDelta(postId);                          // 변경
+        int recommendCount = post.getRecommendationCount() + redisService.getRecommendDelta(postId);       // 변경
+        int disrecommendCount = post.getDisrecommendationCount() + redisService.getDisrecommendDelta(postId); // 변경
 
         post.editPost(title, newContent);
         postRepository.flush();     //updatedAt을 정확하게 받아오기 위함
@@ -194,9 +192,9 @@ public class PostService {
         }
 
         if (voteType == VoteType.UP) {
-            redisService.increaseRecommend(postId);
+            redisService.increaseRecommendDelta(postId);  // 변경
         } else {
-            redisService.increaseDisrecommend(postId);
+            redisService.increaseDisrecommendDelta(postId);  // 변경
         }
     }
 
@@ -209,13 +207,14 @@ public class PostService {
                 .map(Post::getId)
                 .toList();
 
-        Map<Long, Integer> viewCountMap = redisService.getViewCountList(postIds);
-        Map<Long, Integer> recommendMap = redisService.getRecommendList(postIds);
+        Map<Long, Integer> viewDeltaMap = redisService.getViewDeltaList(postIds);
+        Map<Long, Integer> recommendDeltaMap = redisService.getRecommendDeltaList(postIds);   // 변경
+
 
         return posts.map(post -> PostSummaryResponse.from(
                 post,
-                viewCountMap.getOrDefault(post.getId(), post.getViewCount()),
-                recommendMap.getOrDefault(post.getId(), post.getRecommendationCount())
+                post.getViewCount() + viewDeltaMap.getOrDefault(post.getId(), 0),
+                post.getRecommendationCount() + recommendDeltaMap.getOrDefault(post.getId(), 0)  // 변경
         ));
     }
 

@@ -13,13 +13,14 @@ public class CommentBatchRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public void updateCommentLike(Map<Long, Integer> countMap) {
-        List<Object[]> params = countMap.entrySet().stream()
+    // 댓글 좋아요수 변동사항(증감) 배치
+    public void batchIncreaseCommentLikeCount(Map<Long, Integer> deltaMap) {
+        List<Object[]> params = deltaMap.entrySet().stream()
                 .map(entry -> new Object[]{entry.getValue(), entry.getKey()})
                 .toList();
 
         jdbcTemplate.batchUpdate(
-                "UPDATE comment SET like_count = ? where id = ?",
+                "UPDATE comment SET like_count = like_count + ? where id = ?",
                 params
         );
     }

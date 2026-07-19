@@ -13,37 +13,39 @@ public class PostBatchRepository{
 
     private final JdbcTemplate jdbcTemplate;
 
-    public void batchUpdateViewCount(Map<Long, Integer> countMap) {
-        List<Object[]> parms = countMap.entrySet().stream()
-                .map(entry ->new Object[]{entry.getValue(), entry.getKey()})
+    // 게시글 조회수 변동(증가분) 배치
+    public void batchIncreaseViewCount(Map<Long, Integer> deltaMap) {
+        List<Object[]> params = deltaMap.entrySet().stream()
+                .map(entry -> new Object[]{entry.getValue(), entry.getKey()})
                 .toList();
 
         jdbcTemplate.batchUpdate(
-                "UPDATE post SET view_count = ? where id = ?",
-                parms
+                "UPDATE post SET view_count = view_count + ? where id = ?",
+                params
         );
     }
 
-    public void batchUpdateRecommendCount(Map<Long, Integer> countMap) {
-        List<Object[]> parms = countMap.entrySet().stream()
-                .map(entry ->new Object[]{entry.getValue(), entry.getKey()})
+    // 게시글 추천수 변동(증가분) 배치
+    public void batchIncreaseRecommendCount(Map<Long, Integer> deltaMap) {
+        List<Object[]> params = deltaMap.entrySet().stream()
+                .map(entry -> new Object[]{entry.getValue(), entry.getKey()})
                 .toList();
 
         jdbcTemplate.batchUpdate(
-                "UPDATE post SET recommendation_count = ? where id = ?",
-                parms
+                "UPDATE post SET recommendation_count = recommendation_count + ? where id = ?",
+                params
         );
     }
 
-
-    public void batchUpdateDisrecommendCount(Map<Long, Integer> countMap) {
-        List<Object[]> parms = countMap.entrySet().stream()
-                .map(entry ->new Object[]{entry.getValue(), entry.getKey()})
+    // 게시글 비추천수 변동(증가분) 배치
+    public void batchIncreaseDisrecommendCount(Map<Long, Integer> deltaMap) {
+        List<Object[]> params = deltaMap.entrySet().stream()
+                .map(entry -> new Object[]{entry.getValue(), entry.getKey()})
                 .toList();
 
         jdbcTemplate.batchUpdate(
-                "UPDATE post SET disrecommendation_count = ? where id = ?",
-                parms
+                "UPDATE post SET disrecommendation_count = disrecommendation_count + ? where id = ?",
+                params
         );
     }
 
