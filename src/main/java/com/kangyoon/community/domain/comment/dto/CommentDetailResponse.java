@@ -13,14 +13,14 @@ public record CommentDetailResponse(
         int likeCount,
         LocalDateTime createdAt
 ) {
-    public static CommentDetailResponse from(Comment comment) {
+    public static CommentDetailResponse from(Comment comment, int likeCount) {
         return new CommentDetailResponse(
                 comment.getId(),
                 comment.getPost().getId(),
                 comment.getMember().getId(),
                 comment.getParent() != null ? comment.getParent().getId() : null,
                 comment.getContent(),
-                comment.getLikeCount(),
+                likeCount,
                 comment.getCreatedAt()
         );
     }
