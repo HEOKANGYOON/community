@@ -30,7 +30,7 @@ public class ReconciliationScheduler {
         safeRun(redisService::flushDisrecommendDeltaToDb, "비추천 사전 flush");
         safeRun(redisService::flushCommentLikeDeltaToDb, "댓글좋아요 사전 flush");
 
-        LocalDateTime since = LocalDateTime.now().minusDays(1);
+        LocalDateTime since = LocalDateTime.now().minusHours(25);
 
         safeRun(() -> {
             List<Long> postIds = postVoteRepository.findDistinctPostIdsSince(since);
