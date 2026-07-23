@@ -85,7 +85,9 @@
         .pagination-wrap { display: flex; justify-content: center; margin-top: 1rem; }
     </style>
     <!-- XSS defense-in-depth: 서버 sanitize를 전제로, 프론트에서도 한 번 더 정제 -->
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.12/dist/purify.min.js"
+            integrity="sha256-xFupOXZVdPlsvzXum22J9zdWoXkhgUQl50uC98VGA84="
+            crossorigin="anonymous"></script>
     <script src="/js/nav.js"></script>
 </head>
 <body>
