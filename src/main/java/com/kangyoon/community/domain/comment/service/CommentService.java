@@ -1,6 +1,5 @@
 package com.kangyoon.community.domain.comment.service;
 
-import com.kangyoon.community.domain.Role;
 import com.kangyoon.community.domain.board.repository.BoardManagerRepository;
 import com.kangyoon.community.domain.comment.dto.CommentDetailResponse;
 import com.kangyoon.community.domain.comment.dto.CommentsResponse;
@@ -28,8 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
-import static java.util.stream.Collectors.toMap;
-
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -53,11 +50,11 @@ public class CommentService {
                 .map(Comment::getId)
                 .toList();
 
-        Map<Long, Integer> commnetLikeMap = redisService.getCommentLikeList(commentIds);
+        Map<Long, Integer> commentLikeDeltaMap = redisService.getCommentLikeDeltaList(commentIds);
 
         return comments.map(comment -> CommentsResponse.from(
                 comment,
-                commnetLikeMap.getOrDefault(comment.getId(), comment.getLikeCount())
+                comment.getLikeCount() + commentLikeDeltaMap.getOrDefault(comment.getId(), 0)
         ));
     }
 
@@ -66,7 +63,9 @@ public class CommentService {
         Comment comment = commentRepository.findByIdAndDeletedAtIsNull(commentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
 
-        return CommentDetailResponse.from(comment);
+        int likeCount = comment.getLikeCount() + redisService.getCommentLikeDelta(commentId);
+
+        return CommentDetailResponse.from(comment, likeCount);
     }
 
     public void commentWrite(Long postId, Long memberId, String content) {
@@ -141,14 +140,10 @@ public class CommentService {
 
         Optional<CommentLike> existing = commentLikeRepository.findByMemberIdAndCommentId(memberId, commentId);
 
-// commentLikeToggle: save() 이후 명시적 flush 없이 increaseCommentLike 호출
-// -> 트랜잭션 커밋 실패 시 DB엔 반영 안 됐는데 Redis 카운트만 올라가는 정합성 문제 가능성 있음
-// vote()는 flush()로 즉시 검증하지만 이쪽은 커밋 시점까지 미룸 (flush 비용 절감 목적)
-// 개선 방향: vote()처럼 flush() 추가하거나, @TransactionalEventListener(AFTER_COMMIT)으로
-// Redis 반영을 커밋 이후로 미루는 방식 고려
         if (existing.isPresent()) {
             commentLikeRepository.delete(existing.get());
-            redisService.decreaseCommentLike(commentId);
+            commentLikeRepository.flush();
+            redisService.decreaseCommentLikeDelta(commentId);   // 변경
         } else {
             Member member = memberRepository.findById(memberId)
                     .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
@@ -157,10 +152,11 @@ public class CommentService {
 
             try {
                 commentLikeRepository.save(commentLike);
+                commentLikeRepository.flush();
             } catch (DataIntegrityViolationException e) {
                 return;
             }
-            redisService.increaseCommentLike(commentId);
+            redisService.increaseCommentLikeDelta(commentId);   // 변경
 
             //게시글 작성자가 댓글 좋아요 누른 경우 && 댓글 작성자가 자신의 댓글에 좋아요 누르지 않는경우
             if (post.getMember().getId().equals(memberId)

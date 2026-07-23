@@ -15,10 +15,10 @@ public class RedisSyncScheduler {
     //5분마다 redis에 적재된 것 post -> 조회수, 추천수, 비추천수 comment -> 댓글 좋아요 수 배치
     @Scheduled(fixedDelay = 300000)
     public void sync() {
-        safeSync(redisService::syncViewCountsToDB, "조회수");
-        safeSync(redisService::syncRecommendCountsToDB, "추천수");
-        safeSync(redisService::syncDisrecommendCountsToDB, "비추천수");
-        safeSync(redisService::syncCommentLikeCountsToDB, "댓글좋아요");
+        safeSync(redisService::flushViewDeltaToDb, "조회수");   // 변경: syncViewCountsToDB → flushViewDeltaToDb
+        safeSync(redisService::flushRecommendDeltaToDb, "추천수");        // 변경
+        safeSync(redisService::flushDisrecommendDeltaToDb, "비추천수");    // 변경
+        safeSync(redisService::flushCommentLikeDeltaToDb, "댓글좋아요");   // 변경
     }
 
     //하나가 실패해도 다음 배치가 실행 될 수 있도록
