@@ -13,6 +13,7 @@ import com.kangyoon.community.domain.post.entity.PostVote;
 import com.kangyoon.community.domain.post.entity.VoteType;
 import com.kangyoon.community.domain.post.repository.PostRepository;
 import com.kangyoon.community.domain.post.repository.PostVoteRepository;
+import com.kangyoon.community.global.common.HtmlSanitizer;
 import com.kangyoon.community.global.exception.CustomException;
 import com.kangyoon.community.global.exception.ErrorCode;
 import com.kangyoon.community.infrastructure.redis.RedisService;
@@ -101,6 +102,9 @@ public class PostService {
                 .orElseThrow(() -> new CustomException(ErrorCode.BOARD_NOT_FOUND));
 
 
+        // sanitize를 먼저 이후 로직(S3 URL 추출)이 정제된 content 기준으로 동작하도록
+        content = htmlSanitizer.sanitize(content);
+
         Set<String> tempUrls = extractS3Urls(content).stream()
                 .filter(url -> url.contains("/temp/"))
                 .collect(Collectors.toSet());
@@ -131,7 +135,7 @@ public class PostService {
             throw new CustomException(ErrorCode.POST_AUTHOR_MISMATCH);
         }
 
-        String newContent = content;
+        String newContent = htmlSanitizer.sanitize(content);
 
         //새 본문의 temp URL만 이동
         Set<String> tempUrls = extractS3Urls(newContent).stream()
@@ -229,5 +233,8 @@ public class PostService {
         }
         return urls;
     }
+
+    private final HtmlSanitizer htmlSanitizer; // 필드 추가
+
 
 }
