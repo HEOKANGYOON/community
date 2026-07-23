@@ -84,6 +84,10 @@
 
         .pagination-wrap { display: flex; justify-content: center; margin-top: 1rem; }
     </style>
+    <!-- XSS defense-in-depth: 서버 sanitize를 전제로, 프론트에서도 한 번 더 정제 -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.12/dist/purify.min.js"
+            integrity="sha256-xFupOXZVdPlsvzXum22J9zdWoXkhgUQl50uC98VGA84="
+            crossorigin="anonymous"></script>
     <script src="/js/nav.js"></script>
 </head>
 <body>
@@ -173,9 +177,14 @@
             return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
         }
 
+        // HTML 속성/텍스트 컨텍스트 둘 다에서 안전하도록 따옴표까지 이스케이프
         function escapeHtml(str) {
             if (!str) return '';
-            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            return str.replace(/&/g,'&amp;')
+                      .replace(/</g,'&lt;')
+                      .replace(/>/g,'&gt;')
+                      .replace(/"/g,'&quot;')
+                      .replace(/'/g,'&#39;');
         }
 
         function goEdit() {
@@ -200,7 +209,8 @@
                 document.getElementById('post-author').textContent = post.memberNickname;
                 document.getElementById('post-date').textContent = formatDate(post.createdAt);
                 document.getElementById('post-view').textContent = post.viewCount;
-                document.getElementById('post-content').innerHTML = post.content;
+                // 서버에서 sanitize된 content지만, defense-in-depth로 프론트에서도 한 번 더 정제
+                document.getElementById('post-content').innerHTML = DOMPurify.sanitize(post.content);
                 document.getElementById('vote-up').textContent = post.recommendationCount;
                 document.getElementById('vote-down').textContent = post.disrecommendationCount;
 
@@ -309,25 +319,25 @@
                 }
                 ${isDeleted ? '' : `
                 <div class="comment-actions">
-                    <button class="btn-like" onclick="likeComment(${comment.id})">♥ ${comment.commentLikeCount}</button>
+                    <button class="btn-like" data-action="like" data-id="${comment.id}">♥ ${comment.commentLikeCount}</button>
                     ${getToken() ? `
-                        <button class="btn-text" onclick="toggleReplyInput(${comment.id})">답글</button>
-                        <button class="btn-text" onclick="toggleEditInput(${comment.id}, '${escapeHtml(comment.content).replace(/'/g, "\\'")}')">수정</button>
-                        <button class="btn-text" onclick="deleteComment(${comment.id})">삭제</button>
+                        <button class="btn-text" data-action="reply-toggle" data-id="${comment.id}">답글</button>
+                        <button class="btn-text" data-action="edit-toggle" data-id="${comment.id}">수정</button>
+                        <button class="btn-text" data-action="delete" data-id="${comment.id}">삭제</button>
                     ` : ''}
                 </div>
                 <div class="reply-input-box" id="reply-box-${comment.id}">
                     <textarea class="reply-textarea" id="reply-content-${comment.id}" placeholder="답글을 입력하세요"></textarea>
                     <div class="d-flex justify-content-end gap-2 mt-1">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="toggleReplyInput(${comment.id})">취소</button>
-                        <button class="btn btn-sm btn-dark" onclick="submitReply(${comment.id})">등록</button>
+                        <button class="btn btn-sm btn-outline-secondary" data-action="reply-toggle" data-id="${comment.id}">취소</button>
+                        <button class="btn btn-sm btn-dark" data-action="reply-submit" data-id="${comment.id}">등록</button>
                     </div>
                 </div>
                 <div class="edit-input-box" id="edit-box-${comment.id}" style="display:none;">
                     <textarea class="edit-textarea" id="edit-content-${comment.id}"></textarea>
                     <div class="d-flex justify-content-end gap-2 mt-1">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="toggleEditInput(${comment.id})">취소</button>
-                        <button class="btn btn-sm btn-dark" onclick="submitEdit(${comment.id})">수정</button>
+                        <button class="btn btn-sm btn-outline-secondary" data-action="edit-toggle" data-id="${comment.id}">취소</button>
+                        <button class="btn btn-sm btn-dark" data-action="edit-submit" data-id="${comment.id}">수정</button>
                     </div>
                 </div>
                 `}
@@ -343,21 +353,39 @@
                 </div>
                 <p class="comment-content" id="comment-text-${reply.id}">${escapeHtml(reply.content)}</p>
                 <div class="comment-actions">
-                    <button class="btn-like" onclick="likeComment(${reply.id})">♥ ${reply.commentLikeCount}</button>
+                    <button class="btn-like" data-action="like" data-id="${reply.id}">♥ ${reply.commentLikeCount}</button>
                     ${getToken() ? `
-                        <button class="btn-text" onclick="toggleEditInput(${reply.id}, '${escapeHtml(reply.content).replace(/'/g, "\\'")}')">수정</button>
-                        <button class="btn-text" onclick="deleteComment(${reply.id})">삭제</button>
+                        <button class="btn-text" data-action="edit-toggle" data-id="${reply.id}">수정</button>
+                        <button class="btn-text" data-action="delete" data-id="${reply.id}">삭제</button>
                     ` : ''}
                 </div>
                 <div class="edit-input-box" id="edit-box-${reply.id}" style="display:none;">
                     <textarea class="edit-textarea" id="edit-content-${reply.id}"></textarea>
                     <div class="d-flex justify-content-end gap-2 mt-1">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="toggleEditInput(${reply.id})">취소</button>
-                        <button class="btn btn-sm btn-dark" onclick="submitEdit(${reply.id})">수정</button>
+                        <button class="btn btn-sm btn-outline-secondary" data-action="edit-toggle" data-id="${reply.id}">취소</button>
+                        <button class="btn btn-sm btn-dark" data-action="edit-submit" data-id="${reply.id}">수정</button>
                     </div>
                 </div>
             </div>`;
         }
+
+        // 댓글/답글 영역의 클릭을 한 곳에서 위임 처리.
+        // 사용자 입력값(닉네임, 댓글 내용 등)이 JS 문자열/실행 컨텍스트로 들어가지 않도록
+        // 인라인 onclick + 문자열 조합 패턴을 제거하고 data-* 속성만 사용함.
+        document.getElementById('comment-list').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            const id = btn.dataset.id;
+
+            switch (btn.dataset.action) {
+                case 'like': likeComment(id); break;
+                case 'reply-toggle': toggleReplyInput(id); break;
+                case 'reply-submit': submitReply(id); break;
+                case 'edit-toggle': toggleEditInput(id); break;
+                case 'edit-submit': submitEdit(id); break;
+                case 'delete': deleteComment(id); break;
+            }
+        });
 
         function toggleReplyInput(commentId) {
             const box = document.getElementById(`reply-box-${commentId}`);
@@ -366,12 +394,17 @@
             if (!isOpen) document.getElementById(`reply-content-${commentId}`).focus();
         }
 
-        function toggleEditInput(commentId, content) {
+        // content를 파라미터로 받지 않고, 화면에 이미 렌더링된 텍스트를 DOM에서 직접 읽어옴.
+        // escapeHtml로 렌더링됐던 요소의 .textContent를 읽으면 브라우저가 HTML 엔티티를
+        // 자동으로 디코딩해서 원본 문자열을 그대로 돌려주므로, 따옴표 등으로 인한
+        // 컨텍스트 불일치(HTML 속성 vs JS 문자열 리터럴) 문제가 원천적으로 발생하지 않음.
+        function toggleEditInput(commentId) {
             const box = document.getElementById(`edit-box-${commentId}`);
             const isOpen = box.style.display === 'block';
             box.style.display = isOpen ? 'none' : 'block';
-            if (!isOpen && content !== undefined) {
-                document.getElementById(`edit-content-${commentId}`).value = content;
+            if (!isOpen) {
+                const original = document.getElementById(`comment-text-${commentId}`).textContent;
+                document.getElementById(`edit-content-${commentId}`).value = original;
                 document.getElementById(`edit-content-${commentId}`).focus();
             }
         }
