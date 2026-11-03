@@ -7,12 +7,12 @@
 ## 🔗 배포 URL
 
 > **[https://yooncommunity.ddnsfree.com](https://yooncommunity.ddnsfree.com)**
-
+AWS 프리티어 만료로 인해 접속 불가
 
 ## 🔗 Swagger URL
 
 > **[https://yooncommunity.ddnsfree.com/swagger-ui/index.html](https://yooncommunity.ddnsfree.com/swagger-ui/index.html)**
-
+AWS 프리티어 만료로 인해 접속 불가
 
 ---
 
